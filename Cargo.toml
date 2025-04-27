@@ -1,0 +1,39 @@
+[package]
+name = "cargo-upgrade"
+version = "0.0.1"
+description = "cargo-upgrade command-line"
+readme = "README.md"
+homepage = "https://crates.io/crates/cargo-upgrade"
+license = "MIT"
+edition = "2021"
+autoexamples = false
+autobenches = false
+
+
+[lib]
+name = "cargo_upgrade"
+path = "cargo-upgrade/lib.rs"
+
+doctest = false
+bench = false
+
+
+[[bin]]
+name = "cargo-upgrade"
+path = "./cargo-upgrade.rs"
+doctest = false
+bench = false
+doc = false
+test = false
+
+[dependencies]
+cargo = "0.87.1"
+clap = { version = "4.5.37", features = ["derive", "env", "string", "unicode", "wrap_help"] }
+crates-io = "0.40.9"
+curl = "0.4.47"
+dumbeq = "0.1.1"
+indicatif = "0.17.11"
+iocore = "3.0.0"
+serde = { version = "1.0.219", features = ["derive"] }
+toml = "0.8.21"
+toml_edit = { version = "0.22.25", features = ["serde"] }
