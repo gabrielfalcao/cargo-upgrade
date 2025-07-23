@@ -24,7 +24,8 @@ pub trait ParserDispatcher<E: std::error::Error>: clap::Parser {
     fn args() -> (Vec<String>, bool) {
         let args = iocore::env::args();
         let execname = iocore::Path::new(&args[0]).name();
-        let is_cargo = execname.ends_with("cargo");
+        dbg!(&execname, &args);
+        let is_cargo = execname.ends_with("cargo") || execname.ends_with("cargo-craft");
         let args = if is_cargo { args[1..].to_vec() } else { args.to_vec() };
         (args, is_cargo)
     }

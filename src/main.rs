@@ -11,10 +11,15 @@ use iocore::{walk_dir, Path, WalkProgressHandler};
 use toml_edit::{DocumentMut, Item, Value};
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = "cargo-upgrade command-line")]
+#[command(
+    author,
+    version,
+    about,
+    long_about = "cargo-upgrade command-line"
+)]
 pub struct Cli {
     #[arg()]
-    pub package: String,
+    pub packages: Vec<String>,
 
     #[arg(short, long)]
     pub input: Vec<Path>,
@@ -22,32 +27,51 @@ pub struct Cli {
 impl Cli {
     pub fn paths(&self, pb: &ProgressBar) -> Result<Vec<Path>> {
         if self.input.is_empty() {
-            Ok(walk_dir(&Path::cwd(), CargoTomlProgressHandler::new(pb), None)?)
+            Ok(walk_dir(
+                &Path::cwd(),
+                CargoTomlProgressHandler::new(pb),
+                None,
+            )?)
         } else {
             Ok(self.input.clone())
         }
     }
 
-    pub fn upgrade(&self, doc: DocumentMut, path: &Path, pb: &ProgressBar) -> Result<()> {
-        pb.set_message(format!("upgrading {:#?}", path.relative_to_cwd().to_string()));
+    pub fn upgrade(
+        &self,
+        doc: DocumentMut,
+        path: &Path,
+        pb: &ProgressBar,
+    ) -> Result<()> {
+        pb.set_message(format!(
+            "upgrading {:#?}",
+            path.relative_to_cwd().to_string()
+        ));
         path.write(doc.to_string().as_bytes())?;
         Ok(())
     }
 
-    pub fn get_newest_version(&self) -> Result<String> {
+    pub fn get_newest_version(&self, package: &str) -> Result<String> {
         let mut handle = Easy::new();
         handle.useragent("cargo-upgrade (CLI)")?;
-        let mut crates =
-            Registry::new_handle(String::from("https://crates.io"), None, handle, false);
-        let (result, _) = crates.search(&self.package, 10)?;
+        let mut crates = Registry::new_handle(
+            String::from("https://crates.io"),
+            None,
+            handle,
+            false,
+        );
+        let (result, _) = crates.search(package, 10)?;
 
         let result = result
             .iter()
-            .filter(|package| package.name.as_str() == self.package.as_str())
+            .filter(|package| package.name.as_str() == package.name.as_str())
             .collect::<Vec<&Crate>>();
 
         if result.is_empty() {
-            Err(Error::CratesIOError(format!("{} not found in crates.io", &self.package)))
+            Err(Error::CratesIOError(format!(
+                "{} not found in crates.io",
+                package
+            )))
         } else {
             Ok(result[0].max_version.to_string())
         }
@@ -61,17 +85,32 @@ impl ParserDispatcher<Error> for Cli {
             let manifest = path.read()?;
             let mut doc = manifest.parse::<DocumentMut>()?;
 
-            let newest_version = self.get_newest_version()?;
+            for package in self.packages.clone() {
+                let newest_version =
+                    self.get_newest_version(package.as_str())?;
 
-            for kind in ["dependencies", "dev-dependencies", "build-dependencies"] {
-                if let Some(old_version) = edit_version(&mut doc, kind, &self.package, &newest_version)
-                {
-                    if old_version != newest_version {
-                        println!(
-                            "{}: upgraded {} from {:#?} to {:#?} in {}",
-                            path.relative_to_cwd().to_string(), &self.package, &old_version, &newest_version, kind
-                        );
-                        self.upgrade(doc.clone(), &path, &pb)?;
+                for kind in [
+                    "dependencies",
+                    "dev-dependencies",
+                    "build-dependencies",
+                ] {
+                    if let Some(old_version) = edit_version(
+                        &mut doc,
+                        kind,
+                        package.as_str(),
+                        &newest_version,
+                    ) {
+                        if old_version != newest_version {
+                            println!(
+                                "{}: upgraded {} from {:#?} to {:#?} in {}",
+                                path.relative_to_cwd().to_string(),
+                                package.as_str(),
+                                &old_version,
+                                &newest_version,
+                                kind
+                            );
+                            self.upgrade(doc.clone(), &path, &pb)?;
+                        }
                     }
                 }
             }
@@ -80,7 +119,12 @@ impl ParserDispatcher<Error> for Cli {
     }
 }
 
-fn edit_version(doc: &mut DocumentMut, kind: &str, package: &str, version: &str) -> Option<String> {
+fn edit_version(
+    doc: &mut DocumentMut,
+    kind: &str,
+    package: &str,
+    version: &str,
+) -> Option<String> {
     match doc.get(kind) {
         Some(Item::Table(dependencies)) => match dependencies.get(package) {
             Some(Item::Value(Value::String(old_version))) => {
@@ -88,9 +132,12 @@ fn edit_version(doc: &mut DocumentMut, kind: &str, package: &str, version: &str)
                 doc[kind][package] = version.to_string().into();
                 return Some(old_version);
             },
-            Some(Item::Value(Value::InlineTable(data))) => match data.get("version") {
+            Some(Item::Value(Value::InlineTable(data))) => match data
+                .get("version")
+            {
                 Some(Value::String(old_version)) => {
-                    let old_version = old_version.clone().into_value().to_string();
+                    let old_version =
+                        old_version.clone().into_value().to_string();
                     doc[kind][package]["version"] = version.to_string().into();
                     return Some(old_version);
                 },
@@ -117,7 +164,10 @@ impl CargoTomlProgressHandler {
 }
 impl WalkProgressHandler for CargoTomlProgressHandler {
     fn path_matching(&mut self, path: &Path) -> iocore::Result<bool> {
-        self.pb.set_message(format!("scanning {:#?}", path.relative_to_cwd().to_string()));
+        self.pb.set_message(format!(
+            "scanning {:#?}",
+            path.relative_to_cwd().to_string()
+        ));
         let path = path.canonicalize()?;
         Ok(path.name() == "Cargo.toml" && path.is_file())
     }
