@@ -10,6 +10,9 @@ use indicatif::{ProgressBar, ProgressStyle};
 use iocore::{walk_dir, Path, WalkProgressHandler};
 use toml_edit::{DocumentMut, Item, Value};
 
+const DEFAULT_EDITION: &'static str = "2024";
+
+
 #[derive(Parser, Debug)]
 #[command(
     author,
@@ -23,6 +26,15 @@ pub struct Cli {
 
     #[arg(short, long)]
     pub input: Vec<Path>,
+
+    #[arg(short, long, help = "(default) upgrades \"edition\" field to the value specified in --set-edition")]
+    pub edition: bool,
+
+    #[arg(short, long, help = "do not modify \"edition\" field", conflicts_with_all=["edition", "set_edition"])]
+    pub no_edition: bool,
+
+    #[arg(long, requires="edition", help="upgrades \"edition\" field if needed")]
+    pub set_edition: Option<String>,
 }
 impl Cli {
     pub fn packages(&self, manifest_path: &Path) -> Vec<String> {
@@ -36,6 +48,13 @@ impl Cli {
 
     pub fn all_packages(&self, manifest_path: &Path) -> Result<Vec<String>> {
         Ok(Manifest::from_path(manifest_path)?.all_dependency_names())
+    }
+    pub fn set_edition(&self) -> String {
+        self.set_edition.clone().unwrap_or_else(|| DEFAULT_EDITION.to_string())
+    }
+
+    pub fn to_new_edition(&self) -> Option<String> {
+        (!self.no_edition).then(||self.set_edition())
     }
 
     pub fn paths(&self, pb: &ProgressBar) -> Result<Vec<Path>> {
@@ -89,6 +108,13 @@ impl ParserDispatcher<Error> for Cli {
             let manifest = path.read()?;
             let mut doc = manifest.parse::<DocumentMut>()?;
 
+            if let Some(new_edition) = self.to_new_edition() {
+                if let Some(old_edition) = edit_edition_version(&mut doc, new_edition) {
+                    if new_edition != old_edition {
+                        self.upgrade(doc.clone(), &path, &pb)?;
+                    }
+                }
+            }
             for package in self.packages(&path) {
                 let newest_version = self.get_newest_version(package.as_str())?;
 
@@ -98,7 +124,7 @@ impl ParserDispatcher<Error> for Cli {
                     "build-dependencies",
                 ] {
                     if let Some(old_version) =
-                        edit_version(&mut doc, kind, package.as_str(), &newest_version)
+                        edit_dependency_version(&mut doc, kind, package.as_str(), &newest_version)
                     {
                         if old_version != newest_version {
                             println!(
@@ -119,7 +145,7 @@ impl ParserDispatcher<Error> for Cli {
     }
 }
 
-fn edit_version(
+fn edit_dependency_version(
     doc: &mut DocumentMut,
     kind: &str,
     package: &str,
@@ -145,6 +171,19 @@ fn edit_version(
         _ => {},
     }
     None
+}
+fn edit_edition_version(doc: &mut DocumentMut, edition: &str) -> Option<String> {
+    match doc.get("package") {
+        Some(Item::Table(package)) => match package.get("edition") {
+            Some(Item::Value(Value::String(old_edition))) => {
+                let old_edition = old_edition.clone().into_value().to_string();
+                doc["package"]["edition"] = edition.to_string().into();
+                Some(old_edition)
+            },
+            _ => None,
+        },
+        _ => None,
+    }
 }
 fn main() {
     Cli::main()
