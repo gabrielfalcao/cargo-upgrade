@@ -5,7 +5,7 @@ description = "cargo-upgrade command-line"
 readme = "README.md"
 homepage = "https://crates.io/crates/cargo-upgrade"
 license = "MIT"
-edition = "2021"
+edition = "2024"
 autoexamples = false
 autobenches = false
 
