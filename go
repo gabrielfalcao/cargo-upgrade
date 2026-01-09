@@ -3,3 +3,5 @@ set -ex
 cargo cbt -q
 cargo run -q toml_edit
 cargo run -q iocore
+cargo run
+cargo ip
