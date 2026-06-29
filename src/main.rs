@@ -7,19 +7,13 @@ use crates_io::{Crate, Registry};
 use curl::easy::Easy;
 use dumbeq::DumbEq;
 use indicatif::{ProgressBar, ProgressStyle};
-use iocore::{walk_dir, Path, WalkProgressHandler};
+use iocore::{Path, WalkProgressHandler, walk_dir};
 use toml_edit::{DocumentMut, Item, Value};
 
 const DEFAULT_EDITION: &'static str = "2024";
 
-
 #[derive(Parser, Debug)]
-#[command(
-    author,
-    version,
-    about,
-    long_about = "cargo-upgrade command-line"
-)]
+#[command(author, version, about, long_about = "cargo-upgrade command-line")]
 pub struct Cli {
     #[arg()]
     pub packages: Vec<String>,
@@ -27,13 +21,21 @@ pub struct Cli {
     #[arg(short, long)]
     pub input: Vec<Path>,
 
-    #[arg(short, long, help = "(default) upgrades \"edition\" field to the value specified in --set-edition")]
+    #[arg(
+        short,
+        long,
+        help = "(default) upgrades \"edition\" field to the value specified in --set-edition"
+    )]
     pub edition: bool,
 
     #[arg(short, long, help = "do not modify \"edition\" field", conflicts_with_all=["edition", "set_edition"])]
     pub no_edition: bool,
 
-    #[arg(long, requires="edition", help="upgrades \"edition\" field if needed")]
+    #[arg(
+        long,
+        requires = "edition",
+        help = "upgrades \"edition\" field if needed"
+    )]
     pub set_edition: Option<String>,
 }
 impl Cli {
@@ -50,54 +52,61 @@ impl Cli {
         Ok(Manifest::from_path(manifest_path)?.all_dependency_names())
     }
     pub fn set_edition(&self) -> String {
-        self.set_edition.clone().unwrap_or_else(|| DEFAULT_EDITION.to_string())
+        self.set_edition
+            .clone()
+            .unwrap_or_else(|| DEFAULT_EDITION.to_string())
     }
 
     pub fn to_new_edition(&self) -> Option<String> {
-        (!self.no_edition).then(||self.set_edition())
+        (!self.no_edition).then(|| self.set_edition())
     }
 
     pub fn paths(&self, pb: &ProgressBar) -> Result<Vec<Path>> {
         if self.input.is_empty() {
-            Ok(walk_dir(&Path::cwd(), CargoTomlProgressHandler::new(pb), None)?)
+            Ok(walk_dir(
+                &Path::cwd(),
+                CargoTomlProgressHandler::new(pb),
+                None,
+            )?)
         } else {
             Ok(self.input.clone())
         }
     }
 
-    pub fn upgrade(
-        &self,
-        doc: DocumentMut,
-        path: &Path,
-        pb: &ProgressBar,
-    ) -> Result<()> {
+    pub fn upgrade(&self, doc: DocumentMut, path: &Path, pb: &ProgressBar) -> Result<()> {
         pb.set_style(spinner_style(Some("{msg:.220}")));
-        pb.set_message(format!("upgrading {:#?}", path.relative_to_cwd().to_string()));
+        pb.set_message(format!(
+            "upgrading {:#?}",
+            path.relative_to_cwd().to_string()
+        ));
         path.write(doc.to_string().as_bytes())?;
         Ok(())
     }
 
-    pub fn get_newest_version(&self, package: &str) -> Result<String> {
+    pub fn get_newest_version(&self, package_name: &str) -> Result<String> {
         let mut handle = Easy::new();
         handle.useragent("cargo-upgrade (CLI)")?;
-        let mut crates = Registry::new_handle(
-            String::from("https://crates.io"),
-            None,
-            handle,
-            false,
-        );
-        let (result, _) = crates.search(package, 10)?;
+        let mut crates =
+            Registry::new_handle(String::from("https://crates.io"), None, handle, false);
+        let (result, total) = crates.search(package_name, 10)?;
 
-        let result = result
-            .iter()
-            .filter(|package| package.name.as_str() == package.name.as_str())
-            .collect::<Vec<&Crate>>();
-
-        if result.is_empty() {
-            Err(Error::CratesIOError(format!("{} not found in crates.io", package)))
-        } else {
-            Ok(result[0].max_version.to_string())
+        for (index, item) in result.iter().enumerate() {
+            let current = index + 1;
+            eprintln!(
+                "{current} of {total}: {name} {max_version}",
+                name = item.name.to_string(),
+                max_version = item.max_version.to_string()
+            );
         }
+        for package in result.iter() {
+            if package.name.as_str() == package_name {
+                return Ok(package.max_version.to_string());
+            }
+        }
+        Err(Error::CratesIOError(format!(
+            "{} not found in crates.io",
+            package_name
+        )))
     }
 }
 
@@ -109,7 +118,7 @@ impl ParserDispatcher<Error> for Cli {
             let mut doc = manifest.parse::<DocumentMut>()?;
 
             if let Some(new_edition) = self.to_new_edition() {
-                if let Some(old_edition) = edit_edition_version(&mut doc, new_edition) {
+                if let Some(old_edition) = edit_edition_version(&mut doc, &new_edition) {
                     if new_edition != old_edition {
                         self.upgrade(doc.clone(), &path, &pb)?;
                     }
@@ -118,11 +127,7 @@ impl ParserDispatcher<Error> for Cli {
             for package in self.packages(&path) {
                 let newest_version = self.get_newest_version(package.as_str())?;
 
-                for kind in [
-                    "dependencies",
-                    "dev-dependencies",
-                    "build-dependencies",
-                ] {
+                for kind in ["dependencies", "dev-dependencies", "build-dependencies"] {
                     if let Some(old_version) =
                         edit_dependency_version(&mut doc, kind, package.as_str(), &newest_version)
                     {
@@ -157,18 +162,18 @@ fn edit_dependency_version(
                 let old_version = old_version.clone().into_value().to_string();
                 doc[kind][package] = version.to_string().into();
                 return Some(old_version);
-            },
+            }
             Some(Item::Value(Value::InlineTable(data))) => match data.get("version") {
                 Some(Value::String(old_version)) => {
                     let old_version = old_version.clone().into_value().to_string();
                     doc[kind][package]["version"] = version.to_string().into();
                     return Some(old_version);
-                },
-                _ => {},
+                }
+                _ => {}
             },
-            _ => {},
+            _ => {}
         },
-        _ => {},
+        _ => {}
     }
     None
 }
@@ -179,7 +184,7 @@ fn edit_edition_version(doc: &mut DocumentMut, edition: &str) -> Option<String> 
                 let old_edition = old_edition.clone().into_value().to_string();
                 doc["package"]["edition"] = edition.to_string().into();
                 Some(old_edition)
-            },
+            }
             _ => None,
         },
         _ => None,
@@ -213,8 +218,7 @@ impl WalkProgressHandler for CargoTomlProgressHandler {
             }
         }
         if is_manifest {
-            self.pb
-                .set_message(format!("considering {filename}"));
+            self.pb.set_message(format!("considering {filename}"));
         } else {
             self.pb.set_style(spinner_style(Some(
                 "{spinner:.red} {msg:.242} {elapsed:.yellow}",
@@ -249,36 +253,34 @@ fn spinner(template: Option<&str>) -> ProgressBar {
     pb
 }
 fn spinner_style(template: Option<&str>) -> ProgressStyle {
-    ProgressStyle::with_template(
-        template.unwrap_or_else(|| "{spinner:.yellow} {msg:.cyan}"),
-    )
-    .unwrap()
-    .tick_strings(&[
-        "▐|\\____________▌",
-        "▐_|\\___________▌",
-        "▐__|\\__________▌",
-        "▐___|\\_________▌",
-        "▐____|\\________▌",
-        "▐_____|\\_______▌",
-        "▐______|\\______▌",
-        "▐_______|\\_____▌",
-        "▐________|\\____▌",
-        "▐_________|\\___▌",
-        "▐__________|\\__▌",
-        "▐___________|\\_▌",
-        "▐____________|\\▌",
-        "▐____________/|▌",
-        "▐___________/|_▌",
-        "▐__________/|__▌",
-        "▐_________/|___▌",
-        "▐________/|____▌",
-        "▐_______/|_____▌",
-        "▐______/|______▌",
-        "▐_____/|_______▌",
-        "▐____/|________▌",
-        "▐___/|_________▌",
-        "▐__/|__________▌",
-        "▐_/|___________▌",
-        "▐/|____________▌",
-    ])
+    ProgressStyle::with_template(template.unwrap_or_else(|| "{spinner:.yellow} {msg:.cyan}"))
+        .unwrap()
+        .tick_strings(&[
+            "▐|\\____________▌",
+            "▐_|\\___________▌",
+            "▐__|\\__________▌",
+            "▐___|\\_________▌",
+            "▐____|\\________▌",
+            "▐_____|\\_______▌",
+            "▐______|\\______▌",
+            "▐_______|\\_____▌",
+            "▐________|\\____▌",
+            "▐_________|\\___▌",
+            "▐__________|\\__▌",
+            "▐___________|\\_▌",
+            "▐____________|\\▌",
+            "▐____________/|▌",
+            "▐___________/|_▌",
+            "▐__________/|__▌",
+            "▐_________/|___▌",
+            "▐________/|____▌",
+            "▐_______/|_____▌",
+            "▐______/|______▌",
+            "▐_____/|_______▌",
+            "▐____/|________▌",
+            "▐___/|_________▌",
+            "▐__/|__________▌",
+            "▐_/|___________▌",
+            "▐/|____________▌",
+        ])
 }

@@ -1,5 +1,8 @@
 **/target/*
+*.json
+*.logs
+.logs/
 /target
 Cargo.lock
 __test_files__
-.logs/
+crates-io/
