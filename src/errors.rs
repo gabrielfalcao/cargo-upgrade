@@ -18,12 +18,12 @@ impl Display for Error {
             "{}: {}",
             self.variant(),
             match self {
-                Self::IOError(e) => e.to_string(),
-                Self::SerializationError(e) => e.to_string(),
-                Self::DeserializationError(e) => e.to_string(),
-                Self::CratesIOError(e) => e.to_string(),
-                Self::CurlError(e) => e.to_string(),
-                Self::TomlError(e) => e.to_string(),
+                Error::IOError(e) => e.to_string(),
+                Error::SerializationError(e) => e.to_string(),
+                Error::DeserializationError(e) => e.to_string(),
+                Error::CratesIOError(e) => e.to_string(),
+                Error::CurlError(e) => e.to_string(),
+                Error::TomlError(e) => e.to_string(),
             }
         )
     }

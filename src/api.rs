@@ -1,5 +1,6 @@
 use std::fmt::Display;
-use std::str::ToString;
+use std::iter::IntoIterator;
+use std::string::ToString;
 use std::time::Duration;
 
 use crates_io::{Crate, Registry};
@@ -16,76 +17,57 @@ const DEFAULT_EDITION: &'static str = "2024";
 pub const DEFAULT_USER_AGENT: &'static str = "cargo-upgrade (CLI)";
 pub const DEFAULT_API_HOST: &'static str = "https://crates.io";
 
-#[derive(Debug, Clone)]
-#[command(
-    author,
-    version,
-    about,
-    long_about = "cargo-upgrade command-line"
-)]
 pub struct Api {
     pub registry: Registry,
     pub criteria: Vec<String>,
 }
+// impl<T: ToString, I: IntoIterator<Item = T>> Api where
+//     T: ToString,
+//     I: IntoIterator<Item = T>,
 impl Api {
-    pub fn new() -> Api {
+    pub fn new() -> Result<Api> {
         Ok(Api::new_with_options(
-            Default::default(),
-            Default::default(),
-            Default::default(),
-            Default::default(),
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+            Vec::<String>::new(),
         )?)
     }
 
-    pub fn new_with_options<
-        T: ToString,
-        U: ToString,
-        H: ToString,
-        S: Display,
-        I: IntoIterator<Item = S>,
-    >(
-        api_host: Option<H>,
+    pub fn new_with_options<T: ToString, I: IntoIterator<Item = T>>(
+        api_host: Option<T>,
         token: Option<T>,
-        user_agent: Option<U>,
+        user_agent: Option<T>,
         criteria: I,
-    ) -> Api {
+    ) -> Result<Api> {
         let mut handle = Easy::new();
-        match user_agent.map(ToString::to_string) {
+        match user_agent.map(|item| item.to_string()) {
             Some(ua) => handle.useragent(&ua)?,
             None => {},
         };
 
         let mut registry = Registry::new_handle(
-            api_host.map(ToString::to_string),
+            api_host
+                .map(|item| item.to_string())
+                .unwrap_or_else(|| DEFAULT_API_HOST.to_string()),
             None,
             handle,
             false,
         );
         let criteria = criteria
             .into_iter()
-            .map(ToString::to_string)
+            .map(|c| c.to_string())
             .collect::<Vec<String>>();
         Ok(Api { registry, criteria })
     }
 
-    pub fn search<T: Display>(&self, package: T, max: usize) -> Result<()> {
+    pub fn search<T: Display>(&mut self, package: T, max: u32) -> Result<(Vec<Crate>, u32)> {
         let package = package.to_string();
-        Ok((self.registry.search(&package, max)?))
+        Ok(self.registry.search(&package, max)?)
     }
 }
 
-impl ParserDispatcher<Error> for Api {
-    fn dispatch(&self) -> Result<()> {
-        if self.query {
-            self.query_only()
-        } else {
-            self.upgrade();
-        }
-        Ok(())
-    }
-}
-
-fn edit_dependency_version(
+pub fn edit_dependency_version(
     doc: &mut DocumentMut,
     kind: &str,
     package: &str,
@@ -112,7 +94,7 @@ fn edit_dependency_version(
     }
     None
 }
-fn edit_edition_version(doc: &mut DocumentMut, edition: &str) -> Option<String> {
+pub fn edit_edition_version(doc: &mut DocumentMut, edition: &str) -> Option<String> {
     match doc.get("package") {
         Some(Item::Table(package)) => match package.get("edition") {
             Some(Item::Value(Value::String(old_edition))) => {
