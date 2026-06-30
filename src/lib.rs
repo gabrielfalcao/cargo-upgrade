@@ -13,5 +13,5 @@ pub use models::Manifest;
 pub(crate) mod api;
 pub use api::{
     APIClient, DEFAULT_BASE_URL, DEFAULT_TIMEOUT_SECONDS, FromResponse, SearchResult,
-    VersionsResult, default_headers,
+    VersionsResult, default_headers, matches_semver, parse_semver,
 };

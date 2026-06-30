@@ -90,9 +90,9 @@ impl Cli {
     }
 
     pub fn search_package(&self, client: &APIClient, package_name: &str) -> Result<EncodableCrate> {
-        let search_result = client.search(package_name)?;
+        let search_result = client.search_crate(package_name)?;
 
-        for package in search_result.crates.iter() {
+        for package in search_result.crates.into_iter() {
             if package.name == package_name {
                 return Ok(package);
             }
@@ -106,7 +106,7 @@ impl Cli {
         client: &APIClient,
         package_name: &str,
     ) -> Result<Vec<EncodableVersion>> {
-        let versions_result = client.get_crate_versions(client, package_name)?;
+        let versions_result = client.get_crate_versions(package_name)?;
         Ok(versions_result.versions.clone())
     }
 
@@ -114,23 +114,25 @@ impl Cli {
         let client = APIClient::default();
         let package = self.search_package(&client, package_name)?;
         let versions = self.get_package_versions(&client, package_name)?;
-        let mut failed_to_semver = Vec::<(usize, String)>::new();
-        for (index, version) in versions.iter().enumerate() {
+        let mut failed_to_semver = Vec::<String>::new();
+        for version in versions.clone().into_iter() {
             if self.no_semver_filtering {
                 return Ok(version);
             } else if matches_semver(&version.num) {
                 return Ok(version);
             } else {
-                failed_to_semver.push((index, version.num.to_string()));
+                failed_to_semver.push(version.num.to_string());
             }
         }
-        let version_numbers = versions_result
-            .versions
+        let version_numbers = versions
             .iter()
             .map(|version| version.num.to_string())
             .collect::<Vec<String>>();
-        let suffix = if failed_to_semver {
-            format!("\nThe following versions were not considered due to not complying with semantic versioning: {}", failed_to_semver.)
+        let suffix = if failed_to_semver.len() > 0 {
+            format!(
+                "\nThe following versions were not considered due to not complying with semantic versioning: {}",
+                failed_to_semver.join(", ")
+            )
         } else {
             String::new()
         };
@@ -159,10 +161,13 @@ impl ParserDispatcher<Error> for Cli {
                 let newest_version = self.get_newest_version(package.as_str())?;
 
                 for kind in ["dependencies", "dev-dependencies", "build-dependencies"] {
-                    if let Some(old_version) =
-                        edit_dependency_version(&mut doc, kind, package.as_str(), &newest_version)
-                    {
-                        if old_version != newest_version {
+                    if let Some(old_version) = edit_dependency_version(
+                        &mut doc,
+                        kind,
+                        package.as_str(),
+                        &newest_version.num,
+                    ) {
+                        if old_version != newest_version.num {
                             println!(
                                 "{}: upgraded {} from {:#?} to {:#?} in {}",
                                 path.relative_to_cwd().to_string(),
