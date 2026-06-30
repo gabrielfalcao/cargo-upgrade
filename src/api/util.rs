@@ -26,5 +26,5 @@ pub fn parse_semver(version: &str) -> Result<(u64, u64, u64)> {
 }
 
 pub fn matches_semver(version: &str) -> bool {
-    parse_semver(version).map(|_| true).unwrap_or_else(|| false)
+    parse_semver(version).map(|_| true).unwrap_or_else(|_| false)
 }

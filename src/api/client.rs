@@ -1,15 +1,21 @@
-use crate::{Error, Result};
+use crate::{
+    Error, Result,
+    api::{
+        defaults::{DEFAULT_BASE_URL, DEFAULT_TIMEOUT_SECONDS, default_headers},
+        models::{FromResponse, SearchResult, VersionsResult},
+    },
+};
 use crates_io_api_types::{EncodableCrate, EncodableVersion};
-use http::{Method, Request, Response, StatusCode};
+
 use percent_encoding::{NON_ALPHANUMERIC, percent_encode};
 use reqwest::{
-    Url,
-    blocking::{Client, ClientBuilder},
+    Method, StatusCode, Url,
+    blocking::{Client, ClientBuilder, Request, Response},
     header::{HeaderMap, HeaderValue},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::time::Duration;
+use std::{string::ToString, time::Duration};
 
 #[derive(Clone, Debug, Default)]
 pub struct APIClient {
@@ -30,10 +36,11 @@ impl APIClient {
             .timeout(timeout)
             .https_only(true)
             .default_headers(default_headers())
-            .build();
+            .build()
+            .unwrap();
         APIClient {
-            base_url,
-            timeout,
+            base_url: Some(base_url),
+            timeout: Some(timeout),
             client,
         }
     }
@@ -49,13 +56,14 @@ impl APIClient {
             .unwrap_or_else(|| Url::parse(DEFAULT_BASE_URL).unwrap())
     }
     fn timeout(&self) -> Duration {
-        self.duration
+        self.timeout
             .clone()
             .unwrap_or_else(|| Duration::from_secs(DEFAULT_TIMEOUT_SECONDS))
     }
-    fn request(&self, method: Method, path: &str) -> Result<Response> {
-        let full_url = self.base_url().join(path)?;
-        let request = self.client.request(method, full_url)?.build();
+    fn request<T: ToString>(&self, method: Method, path: T) -> Result<Response> {
+        let path = path.to_string();
+        let full_url = self.base_url().join(&path)?;
+        let request = self.client.request(method, full_url).build()?;
         let response = self.client.execute(request)?;
         Ok(response)
     }
@@ -75,8 +83,7 @@ impl APIClient {
             format!(
                 "/api/v1/crates?q={package_name}&per_page=10&sort=relevance",
                 package_name = percent_encode(package_name.as_bytes(), NON_ALPHANUMERIC)
-            )
-            .unwrap(),
+            ),
         )?;
         Ok(SearchResult::from_response(response)?)
     }

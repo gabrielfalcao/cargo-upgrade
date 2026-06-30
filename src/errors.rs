@@ -8,7 +8,7 @@ pub enum Error {
     SerializationError(String),
     DeserializationError(String),
     CratesIOError(String),
-    CurlError(String),
+    HttpError(String),
     TomlError(String),
     ParseError(String),
 }
@@ -23,7 +23,7 @@ impl Display for Error {
                 Self::SerializationError(e) => e.to_string(),
                 Self::DeserializationError(e) => e.to_string(),
                 Self::CratesIOError(e) => e.to_string(),
-                Self::CurlError(e) => e.to_string(),
+                Self::HttpError(e) => e.to_string(),
                 Self::TomlError(e) => e.to_string(),
                 Self::ParseError(e) => e.to_string(),
             }
@@ -38,7 +38,7 @@ impl Error {
             Error::SerializationError(_) => "SerializationError",
             Error::DeserializationError(_) => "DeserializationError",
             Error::CratesIOError(_) => "CratesIOError",
-            Error::CurlError(_) => "CurlError",
+            Error::HttpError(_) => "HttpError",
             Error::TomlError(_) => "TomlError",
             Error::ParseError(_) => "ParseError",
         }
@@ -74,7 +74,12 @@ impl From<crates_io::Error> for Error {
 }
 impl From<curl::Error> for Error {
     fn from(e: curl::Error) -> Self {
-        Error::CurlError(format!("{}", e))
+        Error::HttpError(format!("{}", e))
+    }
+}
+impl From<reqwest::Error> for Error {
+    fn from(e: reqwest::Error) -> Self {
+        Error::HttpError(format!("{}", e))
     }
 }
 impl From<toml_edit::TomlError> for Error {
@@ -95,6 +100,27 @@ impl From<toml_edit::de::Error> for Error {
 impl From<toml_edit::ser::Error> for Error {
     fn from(e: toml_edit::ser::Error) -> Self {
         Error::SerializationError(format!("{}", e))
+    }
+}
+impl From<std::num::ParseIntError> for Error {
+    fn from(e: std::num::ParseIntError) -> Self {
+        Error::ParseError(format!("{}", e))
+    }
+}
+impl From<std::string::FromUtf8Error> for Error {
+    fn from(e: std::string::FromUtf8Error) -> Self {
+        Error::ParseError(format!("{}", e))
+    }
+}
+
+impl From<url::ParseError> for Error {
+    fn from(e: url::ParseError) -> Self {
+        Error::ParseError(format!("{}", e))
+    }
+}
+impl From<serde_json::Error> for Error {
+    fn from(e: serde_json::Error) -> Self {
+        Error::ParseError(format!("{}", e))
     }
 }
 pub type Result<T> = std::result::Result<T, Error>;
