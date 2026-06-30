@@ -10,14 +10,12 @@ use percent_encoding::{NON_ALPHANUMERIC, percent_encode};
 use reqwest::{
     Method, Url,
     blocking::{Client, ClientBuilder, Response},
-    header::{HeaderMap, HeaderValue},
 };
 use std::{string::ToString, time::Duration};
 
 #[derive(Clone, Debug, Default)]
 pub struct APIClient {
     base_url: Option<Url>,
-    timeout: Option<Duration>,
     client: Client,
 }
 
@@ -37,25 +35,13 @@ impl APIClient {
             .unwrap();
         APIClient {
             base_url: Some(base_url),
-            timeout: Some(timeout),
             client,
         }
     }
-    fn default_headers(&self) -> HeaderMap {
-        let mut headers = HeaderMap::new();
-        headers.insert("User-Agent", HeaderValue::from_static("crates.io client"));
-        headers
-    }
-
     fn base_url(&self) -> Url {
         self.base_url
             .clone()
             .unwrap_or_else(|| Url::parse(DEFAULT_BASE_URL).unwrap())
-    }
-    fn timeout(&self) -> Duration {
-        self.timeout
-            .clone()
-            .unwrap_or_else(|| Duration::from_secs(DEFAULT_TIMEOUT_SECONDS))
     }
     fn request<T: ToString>(&self, method: Method, path: T) -> Result<Response> {
         let path = path.to_string();
