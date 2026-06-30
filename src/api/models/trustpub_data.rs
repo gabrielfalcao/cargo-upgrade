@@ -1,10 +1,4 @@
-use crate::{Error, Result};
 
-use chrono::{DateTime, Utc};
-use reqwest::{
-    Url,
-    blocking::{Request, Response},
-};
 use serde::{Deserialize, Serialize};
 
 /// Data structure containing trusted publisher information extracted from JWT claims

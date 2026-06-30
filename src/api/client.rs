@@ -1,20 +1,17 @@
 use crate::{
-    Error, Result,
+    Result,
     api::{
         defaults::{DEFAULT_BASE_URL, DEFAULT_TIMEOUT_SECONDS, default_headers},
         models::{FromResponse, SearchResult, VersionsResult},
     },
 };
-use super::models::{EncodableCrate, EncodableVersion};
 
 use percent_encoding::{NON_ALPHANUMERIC, percent_encode};
 use reqwest::{
-    Method, StatusCode, Url,
-    blocking::{Client, ClientBuilder, Request, Response},
+    Method, Url,
+    blocking::{Client, ClientBuilder, Response},
     header::{HeaderMap, HeaderValue},
 };
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::{string::ToString, time::Duration};
 
 #[derive(Clone, Debug, Default)]

@@ -1,11 +1,8 @@
 mod errors;
-use std::collections::BTreeMap;
 
 pub use errors::{Error, Result};
 pub mod cli;
 pub use cli::ParserDispatcher;
-use iocore::Path;
-use serde::{Deserialize, Serialize};
 
 pub(crate) mod models;
 pub use models::Manifest;

@@ -1,11 +1,5 @@
-use crate::{Error, Result};
 
-use reqwest::{
-    Url,
-    blocking::{Request, Response},
-};
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EncodableVersionLinks {

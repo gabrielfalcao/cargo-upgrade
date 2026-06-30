@@ -1,13 +1,11 @@
 use std::time::Duration;
 
 use cargo_upgrade::{
-    APIClient, Error, Manifest, Result, SearchResult, VersionsResult, cli::ParserDispatcher,
+    APIClient, Error, Manifest, Result, cli::ParserDispatcher,
     matches_semver,
 };
 use clap::Parser;
-use crates_io::{Crate, Registry};
 use cargo_upgrade::api::models::{EncodableCrate, EncodableVersion};
-use curl::easy::Easy;
 use dumbeq::DumbEq;
 use indicatif::{ProgressBar, ProgressStyle};
 use iocore::{Path, WalkProgressHandler, walk_dir};
@@ -112,7 +110,7 @@ impl Cli {
 
     pub fn get_newest_version(&self, package_name: &str) -> Result<EncodableVersion> {
         let client = APIClient::default();
-        let package = self.search_package(&client, package_name)?;
+        let _package = self.search_package(&client, package_name)?;
         let versions = self.get_package_versions(&client, package_name)?;
         let mut failed_to_semver = Vec::<String>::new();
         for version in versions.clone().into_iter() {

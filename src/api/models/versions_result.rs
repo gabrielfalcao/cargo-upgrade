@@ -1,11 +1,7 @@
-use crate::{Error, Result};
+use crate::Result;
 
-use reqwest::{
-    Url,
-    blocking::{Request, Response},
-};
+use reqwest::blocking::Response;
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 use super::{FromResponse, EncodableVersion};
 
 #[derive(Debug, Default, Deserialize, Serialize)]

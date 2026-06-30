@@ -1,11 +1,6 @@
-use crate::{Error, Result};
 
 use super::{EncodableAuditAction, EncodablePublicUser, EncodableVersionLinks};
 use chrono::{DateTime, Utc};
-use reqwest::{
-    Url,
-    blocking::{Request, Response},
-};
 use serde::{Deserialize, Serialize};
 use super::{TrustpubData};
 

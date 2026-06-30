@@ -1,9 +1,4 @@
-use crate::{Error, Result};
 
-use reqwest::{
-    Url,
-    blocking::{Request, Response},
-};
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
