@@ -1,9 +1,12 @@
 use std::time::Duration;
 
-use cargo_upgrade::cli::ParserDispatcher;
-use cargo_upgrade::{Error, Manifest, Result};
+use cargo_upgrade::{
+    APIClient, Error, Manifest, Result, SearchResult, VersionsResult, cli::ParserDispatcher,
+    matches_semver,
+};
 use clap::Parser;
 use crates_io::{Crate, Registry};
+use crates_io_api_types::{EncodableCrate, EncodableVersion};
 use curl::easy::Easy;
 use dumbeq::DumbEq;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -28,7 +31,7 @@ pub struct Cli {
     )]
     pub edition: bool,
 
-    #[arg(short, long, help = "do not modify \"edition\" field", conflicts_with_all=["edition", "set_edition"])]
+    #[arg(short = 'N', long, help = "do not modify \"edition\" field", conflicts_with_all=["edition", "set_edition"])]
     pub no_edition: bool,
 
     #[arg(
@@ -37,6 +40,9 @@ pub struct Cli {
         help = "upgrades \"edition\" field if needed"
     )]
     pub set_edition: Option<String>,
+
+    #[arg(short, long, help = "do not restrict versions to semantic versioning")]
+    pub no_semver_filtering: bool,
 }
 impl Cli {
     pub fn packages(&self, manifest_path: &Path) -> Vec<String> {
@@ -83,29 +89,54 @@ impl Cli {
         Ok(())
     }
 
-    pub fn get_newest_version(&self, package_name: &str) -> Result<String> {
-        let mut handle = Easy::new();
-        handle.useragent("cargo-upgrade (CLI)")?;
-        let mut crates =
-            Registry::new_handle(String::from("https://crates.io"), None, handle, false);
-        let (result, total) = crates.search(package_name, 10)?;
+    pub fn search_package(&self, client: &APIClient, package_name: &str) -> Result<EncodableCrate> {
+        let search_result = client.search(package_name)?;
 
-        for (index, item) in result.iter().enumerate() {
-            let current = index + 1;
-            eprintln!(
-                "{current} of {total}: {name} {max_version}",
-                name = item.name.to_string(),
-                max_version = item.max_version.to_string()
-            );
-        }
-        for package in result.iter() {
-            if package.name.as_str() == package_name {
-                return Ok(package.max_version.to_string());
+        for package in search_result.crates.iter() {
+            if package.name == package_name {
+                return Ok(package);
             }
         }
         Err(Error::CratesIOError(format!(
-            "{} not found in crates.io",
-            package_name
+            "crate {package_name:#?} not found in crates.io",
+        )))
+    }
+    pub fn get_package_versions(
+        &self,
+        client: &APIClient,
+        package_name: &str,
+    ) -> Result<Vec<EncodableVersion>> {
+        let versions_result = client.get_crate_versions(client, package_name)?;
+        Ok(versions_result.versions.clone())
+    }
+
+    pub fn get_newest_version(&self, package_name: &str) -> Result<EncodableVersion> {
+        let client = APIClient::default();
+        let package = self.search_package(&client, package_name)?;
+        let versions = self.get_package_versions(&client, package_name)?;
+        let mut failed_to_semver = Vec::<(usize, String)>::new();
+        for (index, version) in versions.iter().enumerate() {
+            if self.no_semver_filtering {
+                return Ok(version);
+            } else if matches_semver(&version.num) {
+                return Ok(version);
+            } else {
+                failed_to_semver.push((index, version.num.to_string()));
+            }
+        }
+        let version_numbers = versions_result
+            .versions
+            .iter()
+            .map(|version| version.num.to_string())
+            .collect::<Vec<String>>();
+        let suffix = if failed_to_semver {
+            format!("\nThe following versions were not considered due to not complying with semantic versioning: {}", failed_to_semver.)
+        } else {
+            String::new()
+        };
+        Err(Error::CratesIOError(format!(
+            "cannot find semver-compliant version for crate {package_name:#?} among available versions: {available_versions}.{suffix}",
+            available_versions = version_numbers.join(", ")
         )))
     }
 }

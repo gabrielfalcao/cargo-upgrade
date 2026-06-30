@@ -10,6 +10,7 @@ pub enum Error {
     CratesIOError(String),
     CurlError(String),
     TomlError(String),
+    ParseError(String),
 }
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -24,6 +25,7 @@ impl Display for Error {
                 Self::CratesIOError(e) => e.to_string(),
                 Self::CurlError(e) => e.to_string(),
                 Self::TomlError(e) => e.to_string(),
+                Self::ParseError(e) => e.to_string(),
             }
         )
     }
@@ -38,6 +40,7 @@ impl Error {
             Error::CratesIOError(_) => "CratesIOError",
             Error::CurlError(_) => "CurlError",
             Error::TomlError(_) => "TomlError",
+            Error::ParseError(_) => "ParseError",
         }
         .to_string()
     }
