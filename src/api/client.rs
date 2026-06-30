@@ -58,7 +58,7 @@ impl APIClient {
                 package_name = package_name
             )
         )?;
-        Ok(VersionsResult::from_response(response)?)
+        Ok(VersionsResult::parse(response)?)
     }
     pub fn search_crate(&self, package_name: &str) -> Result<SearchResult> {
         let response = self.request(
@@ -68,6 +68,6 @@ impl APIClient {
                 package_name = percent_encode(package_name.as_bytes(), NON_ALPHANUMERIC)
             ),
         )?;
-        Ok(SearchResult::from_response(response)?)
+        Ok(SearchResult::parse(response)?)
     }
 }

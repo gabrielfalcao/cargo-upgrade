@@ -224,8 +224,9 @@ fn edit_edition_version(doc: &mut DocumentMut, edition: &str) -> Option<String> 
         _ => None,
     }
 }
-fn main() {
-    Cli::main()
+fn main() -> std::result::Result<(), color_eyre::Report> {
+    Cli::main()?;
+    Ok(())
 }
 
 #[derive(Clone, DumbEq)]

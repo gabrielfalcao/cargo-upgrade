@@ -1,8 +1,30 @@
-use crate::Result;
+use crate::{Result, slugify};
+use iocore::Path;
 use reqwest::blocking::Response;
+use serde::Deserialize;
 
-pub trait FromResponse {
-    fn from_response(response: Response) -> Result<Self>
-    where
-        Self: Sized;
+pub trait FromResponse: for<'a> Deserialize<'a> {
+    fn parse(response: Response) -> Result<Self> {
+        let path = Path::new(slugify(response.url().path()));
+        let bytes = response.bytes()?.to_vec();
+        path.write(&bytes)?;
+        Ok(Self::from_json_bytes(bytes)?)
+    }
+
+    fn from_json_bytes(bytes: Vec<u8>) -> Result<Self> {
+        let string = String::from_utf8(bytes)?;
+        Ok(Self::from_json_string(string)?)
+    }
+    fn from_json_string(json: String) -> Result<Self> {
+        let model = serde_json::from_str::<Self>(&json)?;
+        Ok(model)
+    }
+    fn from_response(response: Response) -> Result<Self> {
+        let path = Path::new(slugify(response.url().path()));
+        let bytes = response.bytes()?.to_vec();
+        let string = String::from_utf8(bytes.clone())?;
+
+        let model = serde_json::from_str::<Self>(&string)?;
+        Ok(model)
+    }
 }

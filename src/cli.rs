@@ -1,4 +1,4 @@
-pub trait ParserDispatcher<E: std::error::Error>: clap::Parser {
+pub trait ParserDispatcher<E: std::error::Error + std::marker::Send + std::marker::Sync + 'static>: clap::Parser {
     fn dispatch(&self) -> Result<(), E>;
     fn dispatch_cargo(&self) -> Result<(), E> {
         Ok(self.dispatch()?)
@@ -12,14 +12,9 @@ pub trait ParserDispatcher<E: std::error::Error>: clap::Parser {
         }
         Ok(())
     }
-    fn main() {
-        match Self::run() {
-            Ok(_) => {},
-            Err(error) => {
-                eprintln!("{}", error.to_string());
-                std::process::exit(1);
-            },
-        }
+    fn main() -> Result<(), color_eyre::Report> {
+        Self::run()?;
+        Ok(())
     }
     fn args() -> (Vec<String>, bool) {
         let args = iocore::env::args();

@@ -8,8 +8,4 @@ use serde::{Deserialize, Serialize};
 pub struct SearchResult {
     pub crates: Vec<EncodableCrate>,
 }
-impl FromResponse for SearchResult {
-    fn from_response(response: Response) -> Result<SearchResult> {
-        Ok(response.json::<SearchResult>()?)
-    }
-}
+impl FromResponse for SearchResult {}
