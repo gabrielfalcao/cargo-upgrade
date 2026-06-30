@@ -6,7 +6,7 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
-use super::FromResponse;
+use super::{FromResponse, EncodableVersion};
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct VersionsResult {
