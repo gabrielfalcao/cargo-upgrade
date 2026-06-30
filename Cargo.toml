@@ -23,7 +23,6 @@ cargo = "0.97.1"
 chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.1", features = ["derive", "env", "string", "unicode", "wrap_help"] }
 crates-io = "0.40.19"
-crates_io_api_types = { git = "https://github.com/rust-lang/crates.io.git", version = "0.0.0" }
 curl = "0.4.50"
 dumbeq = "0.1.2"
 http = "1.4.2"

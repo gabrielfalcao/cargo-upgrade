@@ -5,7 +5,7 @@ use crate::{
         models::{FromResponse, SearchResult, VersionsResult},
     },
 };
-use crates_io_api_types::{EncodableCrate, EncodableVersion};
+use super::models::{EncodableCrate, EncodableVersion};
 
 use percent_encoding::{NON_ALPHANUMERIC, percent_encode};
 use reqwest::{

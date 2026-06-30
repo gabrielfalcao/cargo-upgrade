@@ -6,7 +6,7 @@ use cargo_upgrade::{
 };
 use clap::Parser;
 use crates_io::{Crate, Registry};
-use crates_io_api_types::{EncodableCrate, EncodableVersion};
+use cargo_upgrade::api::models::{EncodableCrate, EncodableVersion};
 use curl::easy::Easy;
 use dumbeq::DumbEq;
 use indicatif::{ProgressBar, ProgressStyle};
