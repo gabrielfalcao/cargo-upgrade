@@ -1,9 +1,6 @@
-
-use super::{EncodableAuditAction, EncodablePublicUser, EncodableVersionLinks};
+use super::{EncodableAuditAction, EncodablePublicUser, EncodableVersionLinks, TrustpubData};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use super::{TrustpubData};
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EncodableVersion {

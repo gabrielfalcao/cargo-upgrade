@@ -1,4 +1,3 @@
-
 use serde::{Deserialize, Serialize};
 
 /// Data structure containing trusted publisher information extracted from JWT claims

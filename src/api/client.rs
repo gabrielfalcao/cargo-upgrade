@@ -4,14 +4,16 @@ use crate::{
         defaults::{DEFAULT_BASE_URL, DEFAULT_TIMEOUT_SECONDS, default_headers},
         models::{FromResponse, SearchResult, VersionsResult},
     },
+    store_request,
 };
 
 use percent_encoding::{NON_ALPHANUMERIC, percent_encode};
 use reqwest::{
-    Method, Url,
+    Method,
     blocking::{Client, ClientBuilder, Response},
 };
 use std::{string::ToString, time::Duration};
+use url::Url;
 
 #[derive(Clone, Debug, Default)]
 pub struct APIClient {
@@ -47,6 +49,7 @@ impl APIClient {
         let path = path.to_string();
         let full_url = self.base_url().join(&path)?;
         let request = self.client.request(method, full_url).build()?;
+        store_request(&request)?;
         let response = self.client.execute(request)?;
         Ok(response)
     }

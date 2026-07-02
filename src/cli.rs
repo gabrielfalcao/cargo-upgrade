@@ -1,4 +1,6 @@
-pub trait ParserDispatcher<E: std::error::Error + std::marker::Send + std::marker::Sync + 'static>: clap::Parser {
+pub trait ParserDispatcher<E: std::error::Error + std::marker::Send + std::marker::Sync + 'static>:
+    clap::Parser
+{
     fn dispatch(&self) -> Result<(), E>;
     fn dispatch_cargo(&self) -> Result<(), E> {
         Ok(self.dispatch()?)
@@ -20,7 +22,11 @@ pub trait ParserDispatcher<E: std::error::Error + std::marker::Send + std::marke
         let args = iocore::env::args();
         let execname = iocore::Path::new(&args[0]).name();
         let is_cargo = execname.ends_with("cargo") || execname.ends_with("cargo-upgrade");
-        let args = if is_cargo { args[1..].to_vec() } else { args.to_vec() };
+        let args = if is_cargo {
+            args[1..].to_vec()
+        } else {
+            args.to_vec()
+        };
         (args, is_cargo)
     }
 }

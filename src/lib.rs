@@ -5,7 +5,7 @@ pub mod cli;
 pub use cli::ParserDispatcher;
 
 pub(crate) mod models;
-pub use models::Manifest;
+pub use models::{CookieJar, HttpResponse, Manifest};
 
 pub mod api;
 pub use api::{
@@ -14,4 +14,4 @@ pub use api::{
 };
 
 pub(crate) mod util;
-pub use util::slugify;
+pub use util::{slugify, store_request, store_response};

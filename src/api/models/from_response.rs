@@ -1,13 +1,13 @@
-use crate::{Result, slugify};
+use crate::{HttpResponse, Result, slugify, store_response};
+
 use iocore::Path;
 use reqwest::blocking::Response;
 use serde::Deserialize;
 
 pub trait FromResponse: for<'a> Deserialize<'a> {
     fn parse(response: Response) -> Result<Self> {
-        let path = Path::new(slugify(response.url().path()));
-        let bytes = response.bytes()?.to_vec();
-        path.write(&bytes)?;
+        let response = HttpResponse::from(response);
+        let (_path, bytes) = store_response(&response)?;
         Ok(Self::from_json_bytes(bytes)?)
     }
 
@@ -20,11 +20,6 @@ pub trait FromResponse: for<'a> Deserialize<'a> {
         Ok(model)
     }
     fn from_response(response: Response) -> Result<Self> {
-        let path = Path::new(slugify(response.url().path()));
-        let bytes = response.bytes()?.to_vec();
-        let string = String::from_utf8(bytes.clone())?;
-
-        let model = serde_json::from_str::<Self>(&string)?;
-        Ok(model)
+        Ok(Self::from_json_bytes(response.bytes()?.to_vec())?)
     }
 }

@@ -1,28 +1,20 @@
-use std::fmt::Display;
-use std::str::ToString;
-use std::time::Duration;
+use std::{fmt::Display, str::ToString, time::Duration};
 
 use crates_io::{Crate, Registry};
 use curl::easy::Easy;
 use dumbeq::DumbEq;
 use indicatif::{ProgressBar, ProgressStyle};
-use iocore::{walk_dir, Path, WalkProgressHandler};
+use iocore::{Path, WalkProgressHandler, walk_dir};
 use toml_edit::{DocumentMut, Item, Value};
 
-use crate::cli::ParserDispatcher;
-use crate::{Error, Manifest, Result};
+use crate::{Error, Manifest, Result, cli::ParserDispatcher};
 
 const DEFAULT_EDITION: &'static str = "2024";
 pub const DEFAULT_USER_AGENT: &'static str = "cargo-upgrade (CLI)";
 pub const DEFAULT_API_HOST: &'static str = "https://crates.io";
 
 #[derive(Debug, Clone)]
-#[command(
-    author,
-    version,
-    about,
-    long_about = "cargo-upgrade command-line"
-)]
+#[command(author, version, about, long_about = "cargo-upgrade command-line")]
 pub struct Api {
     pub registry: Registry,
     pub criteria: Vec<String>,
@@ -52,15 +44,11 @@ impl Api {
         let mut handle = Easy::new();
         match user_agent.map(ToString::to_string) {
             Some(ua) => handle.useragent(&ua)?,
-            None => {},
+            None => {}
         };
 
-        let mut registry = Registry::new_handle(
-            api_host.map(ToString::to_string),
-            None,
-            handle,
-            false,
-        );
+        let mut registry =
+            Registry::new_handle(api_host.map(ToString::to_string), None, handle, false);
         let criteria = criteria
             .into_iter()
             .map(ToString::to_string)
@@ -97,18 +85,18 @@ fn edit_dependency_version(
                 let old_version = old_version.clone().into_value().to_string();
                 doc[kind][package] = version.to_string().into();
                 return Some(old_version);
-            },
+            }
             Some(Item::Value(Value::InlineTable(data))) => match data.get("version") {
                 Some(Value::String(old_version)) => {
                     let old_version = old_version.clone().into_value().to_string();
                     doc[kind][package]["version"] = version.to_string().into();
                     return Some(old_version);
-                },
-                _ => {},
+                }
+                _ => {}
             },
-            _ => {},
+            _ => {}
         },
-        _ => {},
+        _ => {}
     }
     None
 }
@@ -119,7 +107,7 @@ fn edit_edition_version(doc: &mut DocumentMut, edition: &str) -> Option<String> 
                 let old_edition = old_edition.clone().into_value().to_string();
                 doc["package"]["edition"] = edition.to_string().into();
                 Some(old_edition)
-            },
+            }
             _ => None,
         },
         _ => None,

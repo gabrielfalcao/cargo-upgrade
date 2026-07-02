@@ -123,4 +123,14 @@ impl From<serde_json::Error> for Error {
         Error::ParseError(format!("{}", e))
     }
 }
+impl From<slugify_filenames::Error> for Error {
+    fn from(e: slugify_filenames::Error) -> Self {
+        Error::ParseError(format!("{}", e))
+    }
+}
+impl From<sanitation::Error<'_>> for Error {
+    fn from(e: sanitation::Error<'_>) -> Self {
+        Error::ParseError(format!("{}", e))
+    }
+}
 pub type Result<T> = std::result::Result<T, Error>;

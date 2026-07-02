@@ -1,7 +1,7 @@
-use iocore::Path;
-use std::collections::BTreeMap;
 use crate::Result;
+use iocore::Path;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub struct Manifest {

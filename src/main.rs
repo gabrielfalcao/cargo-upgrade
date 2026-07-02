@@ -1,11 +1,12 @@
 use std::time::Duration;
 
 use cargo_upgrade::{
-    APIClient, Error, Manifest, Result, cli::ParserDispatcher,
+    APIClient, Error, Manifest, Result,
+    api::models::{EncodableCrate, EncodableVersion},
+    cli::ParserDispatcher,
     matches_semver,
 };
 use clap::Parser;
-use cargo_upgrade::api::models::{EncodableCrate, EncodableVersion};
 use dumbeq::DumbEq;
 use indicatif::{ProgressBar, ProgressStyle};
 use iocore::{Path, WalkProgressHandler, walk_dir};
@@ -41,6 +42,9 @@ pub struct Cli {
 
     #[arg(short, long, help = "do not restrict versions to semantic versioning")]
     pub no_semver_filtering: bool,
+
+    #[arg(short, long, help = "do not modify any files")]
+    pub dry_run: bool,
 }
 impl Cli {
     pub fn packages(&self, manifest_path: &Path) -> Vec<String> {
@@ -79,11 +83,18 @@ impl Cli {
 
     pub fn upgrade(&self, doc: DocumentMut, path: &Path, pb: &ProgressBar) -> Result<()> {
         pb.set_style(spinner_style(Some("{msg:.220}")));
-        pb.set_message(format!(
-            "upgrading {:#?}",
-            path.relative_to_cwd().to_string()
-        ));
-        path.write(doc.to_string().as_bytes())?;
+        if self.dry_run {
+            pb.set_message(format!(
+                "would modify {:#?}",
+                path.relative_to_cwd().to_string()
+            ));
+        } else {
+            pb.set_message(format!(
+                "upgrading {:#?}",
+                path.relative_to_cwd().to_string()
+            ));
+            path.write(doc.to_string().as_bytes())?;
+        }
         Ok(())
     }
 
