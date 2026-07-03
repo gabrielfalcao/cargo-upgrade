@@ -1,13 +1,16 @@
 use std::collections::BTreeMap;
 
-use crate::{HttpVersion, Result};
+use crate::{HttpVersion, ObjectInfo, Result};
 use iocore::Path;
 use reqwest::blocking::Request;
 use sanitation::SString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use slugify_filenames::slugify_string;
-use std::time::Duration;
+use std::{
+    fmt::{Debug, Display},
+    time::Duration,
+};
 use url::Url;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,6 +24,12 @@ pub struct HttpRequest {
 }
 
 impl HttpRequest {
+    pub fn info(&self) -> ObjectInfo<HttpRequest> {
+        ObjectInfo {
+            value: self.clone(),
+            // versions: Value::Array(vec![Value::String(self.version.clone())]),
+        }
+    }
     pub fn url(&self) -> String {
         self.url.clone()
     }
@@ -82,5 +91,11 @@ impl From<&Request> for HttpRequest {
             timeout,
             version,
         }
+    }
+}
+impl Display for HttpRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let json = serde_json::to_string_pretty(&self).unwrap();
+        write!(f, "{json}")
     }
 }

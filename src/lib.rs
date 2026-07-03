@@ -5,7 +5,9 @@ pub mod cli;
 pub use cli::ParserDispatcher;
 
 pub(crate) mod models;
-pub use models::{CookieJar, HttpRequest, HttpResponse, HttpVersion, Manifest};
+pub use models::{
+    CookieJar, HttpRequest, HttpResponse, HttpVersion, Manifest, ObjectInfo, headers_to_json,
+};
 
 pub mod api;
 pub use api::{

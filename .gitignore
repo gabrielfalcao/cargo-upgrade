@@ -6,3 +6,4 @@
 Cargo.lock
 __test_files__
 crates-io/
+/json/

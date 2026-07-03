@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{CookieJar, Result};
+use http::HeaderMap;
 use iocore::Path;
 use reqwest::blocking::Response;
 use sanitation::SString;
@@ -120,4 +121,15 @@ impl From<Response> for HttpResponse {
             url: uri,
         }
     }
+}
+
+pub fn headers_to_json(headers: &HeaderMap) -> Result<BTreeMap<String, String>> {
+    let mut result = BTreeMap::<String, String>::new();
+    for (key, value) in headers.iter() {
+        result.insert(
+            key.to_string(),
+            value.to_str().map(|v| v.to_string()).unwrap_or_default(),
+        );
+    }
+    Ok(result)
 }

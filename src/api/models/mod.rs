@@ -10,6 +10,9 @@ pub use versions_result::VersionsResult;
 pub(crate) mod encodable_version;
 pub use encodable_version::EncodableVersion;
 
+pub(crate) mod encodable_error;
+pub use encodable_error::EncodableError;
+
 pub(crate) mod encodable_version_links;
 pub use encodable_version_links::EncodableVersionLinks;
 
