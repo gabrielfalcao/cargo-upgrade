@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::{CookieJar, Error, Result};
+use crate::{CookieJar, Result};
 use iocore::Path;
-use reqwest::blocking::{Request, Response};
+use reqwest::blocking::Response;
 use sanitation::SString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

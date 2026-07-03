@@ -1,11 +1,12 @@
-use crate::Result;
 
 use super::{EncodableVersion, FromResponse};
-use reqwest::blocking::Response;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct VersionsResult {
     pub versions: Vec<EncodableVersion>,
+
+    #[serde(flatten)]
+    pub meta: serde_json::Value,
 }
 impl FromResponse for VersionsResult {}

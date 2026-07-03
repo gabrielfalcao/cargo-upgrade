@@ -1,6 +1,5 @@
-use crate::{HttpResponse, Result, slugify, store_response};
+use crate::{HttpResponse, Result, store_response};
 
-use iocore::Path;
 use reqwest::blocking::Response;
 use serde::Deserialize;
 

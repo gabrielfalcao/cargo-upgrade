@@ -1,5 +1,5 @@
 use crate::{
-    Result,
+    Error, Result, HttpResponse, HttpRequest,
     api::{
         defaults::{DEFAULT_BASE_URL, DEFAULT_TIMEOUT_SECONDS, default_headers},
         models::{FromResponse, SearchResult, VersionsResult},
@@ -49,7 +49,9 @@ impl APIClient {
         let path = path.to_string();
         let full_url = self.base_url().join(&path)?;
         let request = self.client.request(method, full_url).build()?;
-        store_request(&request)?;
+
+        let serde_request = HttpRequest::from(&request);
+        eprintln!("json_request: {serde_request:#?}");
         let response = self.client.execute(request)?;
         Ok(response)
     }
@@ -61,7 +63,9 @@ impl APIClient {
                 package_name = package_name
             )
         )?;
-        Ok(VersionsResult::parse(response)?)
+        let result = VersionsResult::parse(response)?;
+        dbg!(&result);
+        Ok(result)
     }
     pub fn search_crate(&self, package_name: &str) -> Result<SearchResult> {
         let response = self.request(
@@ -71,6 +75,19 @@ impl APIClient {
                 package_name = percent_encode(package_name.as_bytes(), NON_ALPHANUMERIC)
             ),
         )?;
-        Ok(SearchResult::parse(response)?)
+        let response = HttpResponse::from(response);
+        let bytes = response.bytes()?.to_vec();
+        let json_value = serde_json::from_str::<serde_json::Value>(&response.text()?)?;
+        match SearchResult::from_json_bytes(bytes) {
+            Ok(result) => Ok(result),
+            Err(error) => {
+                eprintln!("failed to search crate {package_name:#?}: {error}");
+                eprintln!("response: {json_value:#?}");
+
+                Err(Error::ParseError(error.to_string()))
+            }
+        }
+        // dbg!(&result);
+        // Ok(result)
     }
 }

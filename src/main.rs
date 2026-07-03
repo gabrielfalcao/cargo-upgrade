@@ -123,6 +123,7 @@ impl Cli {
         let client = APIClient::default();
         let _package = self.search_package(&client, package_name)?;
         let versions = self.get_package_versions(&client, package_name)?;
+        dbg!(&versions);
         let mut failed_to_semver = Vec::<String>::new();
         for version in versions.clone().into_iter() {
             if self.no_semver_filtering {
