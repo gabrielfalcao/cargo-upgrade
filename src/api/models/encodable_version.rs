@@ -107,3 +107,13 @@ pub struct EncodableVersion {
     /// happens in an asynchronous background job.
     pub linecounts: Option<serde_json::Value>,
 }
+
+impl std::fmt::Display for EncodableVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{version}",
+            version=self.num.to_string(),
+        )
+    }
+}

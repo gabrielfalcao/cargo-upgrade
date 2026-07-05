@@ -16,4 +16,4 @@ pub use api::{
 };
 
 pub(crate) mod util;
-pub use util::{slugify, store_request, store_response};
+pub use util::{SerializableRequest, setup_logger, store_request, store_response};

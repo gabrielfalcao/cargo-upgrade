@@ -1,26 +1,29 @@
 use crate::{HttpResponse, Result};
 use iocore::Path;
-use regex::Regex;
 use reqwest::blocking::Request;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-
+use slugify_filenames::slugify_string;
 use std::string::ToString;
 
-pub fn slugify<T: ToString>(value: T) -> String {
-    let value = value.to_string();
-    let regex = Regex::new(r"[^a-zA-Z0-9_.-]+").unwrap();
-    let replaced = regex.replace_all(&value, "-").to_string();
-    replaced
-        .trim_start_matches("-")
-        .trim_end_matches("-")
-        .to_string()
+pub fn setup_logger(level: log::LevelFilter)  {
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "[{}] {}",
+                record.level(),
+                message
+            ))
+        })
+        .level(level)
+        .chain(std::io::stderr())
+        .apply().unwrap();
 }
 
 pub fn store_response(response: &HttpResponse) -> Result<(Path, Vec<u8>)> {
     let path = Path::new(format!(
         "{name}.response.json",
-        name = slugify(response.url().path())
+        name = slugify_string(response.url().path(), true)?
     ));
     let bytes = response.bytes()?.to_vec();
     path.write(&bytes)?;
@@ -30,7 +33,7 @@ pub fn store_response(response: &HttpResponse) -> Result<(Path, Vec<u8>)> {
 pub fn store_request(request: &Request) -> Result<(Path, Vec<u8>)> {
     let path = Path::new(format!(
         "{name}.request.json",
-        name = slugify(request.url().path())
+        name = slugify_string(request.url().path(), true)?
     ));
     let serializable_request = SerializableRequest::from(request);
     let string = serde_json::to_string_pretty(&serializable_request)?;

@@ -1,7 +1,7 @@
 [package]
 name = "cargo-upgrade"
-version = "0.0.1"
-description = "cargo-upgrade command-line"
+version = "0.1.0"
+description = "upgrades versions of a crate's dependencies"
 readme = "README.md"
 homepage = "https://crates.io/crates/cargo-upgrade"
 license = "MIT"
@@ -26,9 +26,11 @@ color-eyre = "0.6.5"
 crates-io = "0.40.19"
 curl = "0.4.50"
 dumbeq = "0.1.2"
+fern = "0.7.1"
 http = "1.4.2"
 indicatif = "0.18.5"
 iocore = "3.1.0"
+log = { version = "0.4.33", features = ["std", "kv", "serde"] }
 percent-encoding = "2.3.2"
 regex = "1.12.4"
 reqwest = { version = "0.13.4", features = ["blocking", "gzip", "hickory-dns", "json", "query"] }

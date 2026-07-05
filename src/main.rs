@@ -4,7 +4,7 @@ use cargo_upgrade::{
     APIClient, Error, Manifest, Result,
     api::models::{EncodableCrate, EncodableVersion},
     cli::ParserDispatcher,
-    matches_semver,
+    matches_semver, setup_logger
 };
 use clap::Parser;
 use dumbeq::DumbEq;
@@ -45,6 +45,11 @@ pub struct Cli {
 
     #[arg(short, long, help = "do not modify any files")]
     pub dry_run: bool,
+
+    #[arg(short, long, help = "the log level")]
+    pub log_level: Option<log::LevelFilter>,
+
+
 }
 impl Cli {
     pub fn packages(&self, manifest_path: &Path) -> Vec<String> {
@@ -155,6 +160,7 @@ impl Cli {
 
 impl ParserDispatcher<Error> for Cli {
     fn dispatch(&self) -> Result<()> {
+        setup_logger(self.log_level.unwrap_or_else(||log::LevelFilter::Info));
         color_eyre::install()?;
 
         let pb = spinner(None);
@@ -184,8 +190,8 @@ impl ParserDispatcher<Error> for Cli {
                                 "{}: upgraded {} from {:#?} to {:#?} in {}",
                                 path.relative_to_cwd().to_string(),
                                 package.as_str(),
-                                &old_version,
-                                &newest_version,
+                                old_version.to_string(),
+                                newest_version.to_string(),
                                 kind
                             );
                             self.upgrade(doc.clone(), &path, &pb)?;
