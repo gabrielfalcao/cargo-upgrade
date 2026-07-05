@@ -1,5 +1,5 @@
 use crate::{
-    Error, HttpRequest, HttpResponse, Result,
+    Error, HttpResponse, Result,
     api::{
         defaults::{DEFAULT_BASE_URL, DEFAULT_TIMEOUT_SECONDS, default_headers},
         models::{FromResponse, SearchResult, VersionsResult},
@@ -47,16 +47,16 @@ impl APIClient {
         let path = path.to_string();
         let full_url = self.base_url().join(&path)?;
         let request = self.client.request(method, full_url).headers(default_headers()).build()?;
-        let _headers = request.headers().clone();
-        let serde_request = HttpRequest::from(&request);
-        // eprintln!(
-        //     "json_headers: {json}",
-        //     json = serde_json::to_string_pretty(&headers_to_json(&headers)?)?
-        // );
-        let (_json_path, json_string) = serde_request.info().save(None)?;
-        eprintln!(
-            "json_request: {json_string}",
-        );
+        // let _headers = request.headers().clone();
+        // let serde_request = HttpRequest::from(&request);
+        // // eprintln!(
+        // //     "json_headers: {json}",
+        // //     json = serde_json::to_string_pretty(&headers_to_json(&headers)?)?
+        // // );
+        // let (_json_path, json_string) = serde_request.info().save(None)?;
+        // // eprintln!(
+        // //     "json_request: {json_string}",
+        // // );
         let response = self.client.execute(request)?;
         Ok(response)
     }
@@ -69,7 +69,7 @@ impl APIClient {
             )
         )?;
         let result = VersionsResult::parse(response)?;
-        dbg!(&result);
+        // dbg!(&result);
         Ok(result)
     }
     pub fn search_crate(&self, package_name: &str) -> Result<SearchResult> {
