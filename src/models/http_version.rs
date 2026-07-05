@@ -1,11 +1,6 @@
 use crate::{Error, Result};
 use http::Version;
-use iocore::Path;
-use reqwest::blocking::Request;
-use sanitation::SString;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, time::Duration};
-use url::Url;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HttpVersion {
@@ -42,7 +37,7 @@ impl HttpVersion {
             "1.1" => Version::HTTP_10,
             "2.0" => Version::HTTP_10,
             "3.0" => Version::HTTP_10,
-            unknown => return None,
+            _unknown => return None,
         };
         Some(version)
     }

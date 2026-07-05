@@ -1,17 +1,13 @@
 use std::collections::BTreeMap;
 
 use crate::{HttpVersion, ObjectInfo, Result};
-use iocore::Path;
 use reqwest::blocking::Request;
 use sanitation::SString;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use slugify_filenames::slugify_string;
 use std::{
     fmt::{Debug, Display},
     time::Duration,
 };
-use url::Url;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HttpRequest {
@@ -24,9 +20,9 @@ pub struct HttpRequest {
 }
 
 impl HttpRequest {
-    pub fn info(&self) -> ObjectInfo<HttpRequest> {
+    pub fn info(&self) -> ObjectInfo<String> {
         ObjectInfo {
-            value: self.clone(),
+            value: self.url(),
             // versions: Value::Array(vec![Value::String(self.version.clone())]),
         }
     }

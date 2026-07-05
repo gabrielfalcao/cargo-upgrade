@@ -155,6 +155,8 @@ impl Cli {
 
 impl ParserDispatcher<Error> for Cli {
     fn dispatch(&self) -> Result<()> {
+        color_eyre::install()?;
+
         let pb = spinner(None);
         for path in self.paths(&pb)? {
             let manifest = path.read()?;

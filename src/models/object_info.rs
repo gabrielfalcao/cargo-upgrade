@@ -1,12 +1,9 @@
 use crate::Result;
 use iocore::Path;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, to_string_pretty};
+use serde_json::to_string_pretty;
 use slugify_filenames::slugify_string;
-use std::{
-    fmt::{Debug, Display},
-    iter::IntoIterator,
-};
+use std::fmt::{Debug, Display};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ObjectInfo<
@@ -22,7 +19,7 @@ where
 {
     pub fn save(&self, path: Option<Path>) -> Result<(Path, String)> {
         let path = path.unwrap_or_else(|| {
-            let slug = slugify_string(&self.value).unwrap_or_default();
+            let slug = slugify_string(&self.value, true).unwrap_or_default();
             Path::new(format!("{slug}.json"))
         });
         let json_string = to_string_pretty(&self.value)?;

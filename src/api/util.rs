@@ -3,7 +3,7 @@ use regex::Regex;
 use std::sync::LazyLock;
 
 static SEMVER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?<major>[0-9]+)[.](?<minor>[0-9]+)[.](?<patch>[0-9]+)[.]$").unwrap()
+    Regex::new(r"^(?<major>[0-9]+)[.](?<minor>[0-9]+)[.](?<patch>[0-9]+)$").unwrap()
 });
 
 pub fn parse_semver(version: &str) -> Result<(u64, u64, u64)> {

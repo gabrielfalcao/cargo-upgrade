@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Error {
     IOError(String),
+    RuntimeError(String),
     SerializationError(String),
     DeserializationError(String),
     CratesIOError(String),
@@ -20,6 +21,7 @@ impl Display for Error {
             self.variant(),
             match self {
                 Self::IOError(e) => e.to_string(),
+                Self::RuntimeError(e) => e.to_string(),
                 Self::SerializationError(e) => e.to_string(),
                 Self::DeserializationError(e) => e.to_string(),
                 Self::CratesIOError(e) => e.to_string(),
@@ -35,6 +37,7 @@ impl Error {
     pub fn variant(&self) -> String {
         match self {
             Error::IOError(_) => "IOError",
+            Error::RuntimeError(_) => "RuntimeError",
             Error::SerializationError(_) => "SerializationError",
             Error::DeserializationError(_) => "DeserializationError",
             Error::CratesIOError(_) => "CratesIOError",
@@ -131,6 +134,12 @@ impl From<slugify_filenames::Error> for Error {
 impl From<sanitation::Error<'_>> for Error {
     fn from(e: sanitation::Error<'_>) -> Self {
         Error::ParseError(format!("{}", e))
+    }
+}
+impl From<color_eyre::Report> for Error {
+    fn from(e: color_eyre::Report) -> Self {
+        log::error!("{e}");
+        Error::RuntimeError(format!("{}", e))
     }
 }
 pub type Result<T> = std::result::Result<T, Error>;

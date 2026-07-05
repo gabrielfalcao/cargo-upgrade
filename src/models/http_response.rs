@@ -41,7 +41,7 @@ impl HttpResponse {
         self.url_path_slug().expect("no errors")
     }
     pub fn url_path_slug(&self) -> Result<String> {
-        Ok(slugify_string(self.url_path())?)
+        Ok(slugify_string(self.url_path(), true)?)
     }
 
     pub fn path(&self) -> Path {
