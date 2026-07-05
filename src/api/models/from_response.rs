@@ -6,7 +6,6 @@ use serde::Deserialize;
 pub trait FromResponse: for<'a> Deserialize<'a> {
     fn parse(response: Response) -> Result<Self> {
         let response = HttpResponse::from(response);
-        // let (_path, bytes) = store_response(&response)?;
     let bytes = response.bytes()?.to_vec();
 
         Ok(Self::from_json_bytes(bytes)?)

@@ -16,5 +16,3 @@ pub use http_request::HttpRequest;
 pub(crate) mod http_version;
 pub use http_version::HttpVersion;
 
-// pub(crate) mod url;
-// pub use url::Url;

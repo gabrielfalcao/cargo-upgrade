@@ -23,7 +23,6 @@ impl HttpRequest {
     pub fn info(&self) -> ObjectInfo<String> {
         ObjectInfo {
             value: self.url(),
-            // versions: Value::Array(vec![Value::String(self.version.clone())]),
         }
     }
     pub fn url(&self) -> String {
