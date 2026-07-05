@@ -1,25 +1,21 @@
 use std::time::Duration;
 
-use cargo_upgrade::cli::ParserDispatcher;
-use cargo_upgrade::{Error, Manifest, Result};
+use cargo_upgrade::{
+    APIClient, Error, Manifest, Result,
+    api::models::{EncodableCrate, EncodableVersion},
+    cli::ParserDispatcher,
+    matches_semver, setup_logger
+};
 use clap::Parser;
-use crates_io::{Crate, Registry};
-use curl::easy::Easy;
 use dumbeq::DumbEq;
 use indicatif::{ProgressBar, ProgressStyle};
-use iocore::{walk_dir, Path, WalkProgressHandler};
+use iocore::{Path, WalkProgressHandler, walk_dir};
 use toml_edit::{DocumentMut, Item, Value};
 
 const DEFAULT_EDITION: &'static str = "2024";
 
-
 #[derive(Parser, Debug)]
-#[command(
-    author,
-    version,
-    about,
-    long_about = "cargo-upgrade command-line"
-)]
+#[command(author, version, about, long_about = "cargo-upgrade command-line")]
 pub struct Cli {
     #[arg()]
     pub packages: Vec<String>,
@@ -27,14 +23,33 @@ pub struct Cli {
     #[arg(short, long)]
     pub input: Vec<Path>,
 
-    #[arg(short, long, help = "(default) upgrades \"edition\" field to the value specified in --set-edition")]
+    #[arg(
+        short,
+        long,
+        help = "(default) upgrades \"edition\" field to the value specified in --set-edition"
+    )]
     pub edition: bool,
 
-    #[arg(short, long, help = "do not modify \"edition\" field", conflicts_with_all=["edition", "set_edition"])]
+    #[arg(short = 'N', long, help = "do not modify \"edition\" field", conflicts_with_all=["edition", "set_edition"])]
     pub no_edition: bool,
 
-    #[arg(long, requires="edition", help="upgrades \"edition\" field if needed")]
+    #[arg(
+        long,
+        requires = "edition",
+        help = "upgrades \"edition\" field if needed"
+    )]
     pub set_edition: Option<String>,
+
+    #[arg(short, long, help = "do not restrict versions to semantic versioning")]
+    pub no_semver_filtering: bool,
+
+    #[arg(short, long, help = "do not modify any files")]
+    pub dry_run: bool,
+
+    #[arg(short, long, help = "the log level")]
+    pub log_level: Option<log::LevelFilter>,
+
+
 }
 impl Cli {
     pub fn packages(&self, manifest_path: &Path) -> Vec<String> {
@@ -50,66 +65,111 @@ impl Cli {
         Ok(Manifest::from_path(manifest_path)?.all_dependency_names())
     }
     pub fn set_edition(&self) -> String {
-        self.set_edition.clone().unwrap_or_else(|| DEFAULT_EDITION.to_string())
+        self.set_edition
+            .clone()
+            .unwrap_or_else(|| DEFAULT_EDITION.to_string())
     }
 
     pub fn to_new_edition(&self) -> Option<String> {
-        (!self.no_edition).then(||self.set_edition())
+        (!self.no_edition).then(|| self.set_edition())
     }
 
     pub fn paths(&self, pb: &ProgressBar) -> Result<Vec<Path>> {
         if self.input.is_empty() {
-            Ok(walk_dir(&Path::cwd(), CargoTomlProgressHandler::new(pb), None)?)
+            Ok(walk_dir(
+                &Path::cwd(),
+                CargoTomlProgressHandler::new(pb),
+                None,
+            )?)
         } else {
             Ok(self.input.clone())
         }
     }
 
-    pub fn upgrade(
-        &self,
-        doc: DocumentMut,
-        path: &Path,
-        pb: &ProgressBar,
-    ) -> Result<()> {
+    pub fn upgrade(&self, doc: DocumentMut, path: &Path, pb: &ProgressBar) -> Result<()> {
         pb.set_style(spinner_style(Some("{msg:.220}")));
-        pb.set_message(format!("upgrading {:#?}", path.relative_to_cwd().to_string()));
-        path.write(doc.to_string().as_bytes())?;
+        if self.dry_run {
+            pb.set_message(format!(
+                "would modify {:#?}",
+                path.relative_to_cwd().to_string()
+            ));
+        } else {
+            pb.set_message(format!(
+                "upgrading {:#?}",
+                path.relative_to_cwd().to_string()
+            ));
+            path.write(doc.to_string().as_bytes())?;
+        }
         Ok(())
     }
 
-    pub fn get_newest_version(&self, package: &str) -> Result<String> {
-        let mut handle = Easy::new();
-        handle.useragent("cargo-upgrade (CLI)")?;
-        let mut crates = Registry::new_handle(
-            String::from("https://crates.io"),
-            None,
-            handle,
-            false,
-        );
-        let (result, _) = crates.search(package, 10)?;
+    pub fn search_package(&self, client: &APIClient, package_name: &str) -> Result<EncodableCrate> {
+        let search_result = client.search_crate(package_name)?;
 
-        let result = result
-            .iter()
-            .filter(|package| package.name.as_str() == package.name.as_str())
-            .collect::<Vec<&Crate>>();
-
-        if result.is_empty() {
-            Err(Error::CratesIOError(format!("{} not found in crates.io", package)))
-        } else {
-            Ok(result[0].max_version.to_string())
+        for package in search_result.crates.into_iter() {
+            if package.name == package_name {
+                return Ok(package);
+            }
         }
+        Err(Error::CratesIOError(format!(
+            "crate {package_name:#?} not found in crates.io",
+        )))
+    }
+    pub fn get_package_versions(
+        &self,
+        client: &APIClient,
+        package_name: &str,
+    ) -> Result<Vec<EncodableVersion>> {
+        let versions_result = client.get_crate_versions(package_name)?;
+        Ok(versions_result.versions.clone())
+    }
+
+    pub fn get_newest_version(&self, package_name: &str) -> Result<EncodableVersion> {
+        let client = APIClient::default();
+        let _package = self.search_package(&client, package_name)?;
+        let versions = self.get_package_versions(&client, package_name)?;
+
+        let mut failed_to_semver = Vec::<String>::new();
+        for version in versions.clone().into_iter() {
+            if self.no_semver_filtering {
+                return Ok(version);
+            } else if matches_semver(&version.num) {
+                return Ok(version);
+            } else {
+                failed_to_semver.push(version.num.to_string());
+            }
+        }
+        let version_numbers = versions
+            .iter()
+            .map(|version| version.num.to_string())
+            .collect::<Vec<String>>();
+        let suffix = if failed_to_semver.len() > 0 {
+            format!(
+                "\nThe following versions were not considered due to not complying with semantic versioning: {}",
+                failed_to_semver.join(", ")
+            )
+        } else {
+            String::new()
+        };
+        Err(Error::CratesIOError(format!(
+            "cannot find semver-compliant version for crate {package_name:#?} among available versions: {available_versions}.{suffix}",
+            available_versions = version_numbers.join(", ")
+        )))
     }
 }
 
 impl ParserDispatcher<Error> for Cli {
     fn dispatch(&self) -> Result<()> {
+        setup_logger(self.log_level.unwrap_or_else(||log::LevelFilter::Info));
+        color_eyre::install()?;
+
         let pb = spinner(None);
         for path in self.paths(&pb)? {
             let manifest = path.read()?;
             let mut doc = manifest.parse::<DocumentMut>()?;
 
             if let Some(new_edition) = self.to_new_edition() {
-                if let Some(old_edition) = edit_edition_version(&mut doc, new_edition) {
+                if let Some(old_edition) = edit_edition_version(&mut doc, &new_edition) {
                     if new_edition != old_edition {
                         self.upgrade(doc.clone(), &path, &pb)?;
                     }
@@ -118,21 +178,20 @@ impl ParserDispatcher<Error> for Cli {
             for package in self.packages(&path) {
                 let newest_version = self.get_newest_version(package.as_str())?;
 
-                for kind in [
-                    "dependencies",
-                    "dev-dependencies",
-                    "build-dependencies",
-                ] {
-                    if let Some(old_version) =
-                        edit_dependency_version(&mut doc, kind, package.as_str(), &newest_version)
-                    {
-                        if old_version != newest_version {
+                for kind in ["dependencies", "dev-dependencies", "build-dependencies"] {
+                    if let Some(old_version) = edit_dependency_version(
+                        &mut doc,
+                        kind,
+                        package.as_str(),
+                        &newest_version.num,
+                    ) {
+                        if old_version != newest_version.num {
                             println!(
                                 "{}: upgraded {} from {:#?} to {:#?} in {}",
                                 path.relative_to_cwd().to_string(),
                                 package.as_str(),
-                                &old_version,
-                                &newest_version,
+                                old_version.to_string(),
+                                newest_version.to_string(),
                                 kind
                             );
                             self.upgrade(doc.clone(), &path, &pb)?;
@@ -157,18 +216,18 @@ fn edit_dependency_version(
                 let old_version = old_version.clone().into_value().to_string();
                 doc[kind][package] = version.to_string().into();
                 return Some(old_version);
-            },
+            }
             Some(Item::Value(Value::InlineTable(data))) => match data.get("version") {
                 Some(Value::String(old_version)) => {
                     let old_version = old_version.clone().into_value().to_string();
                     doc[kind][package]["version"] = version.to_string().into();
                     return Some(old_version);
-                },
-                _ => {},
+                }
+                _ => {}
             },
-            _ => {},
+            _ => {}
         },
-        _ => {},
+        _ => {}
     }
     None
 }
@@ -179,14 +238,15 @@ fn edit_edition_version(doc: &mut DocumentMut, edition: &str) -> Option<String> 
                 let old_edition = old_edition.clone().into_value().to_string();
                 doc["package"]["edition"] = edition.to_string().into();
                 Some(old_edition)
-            },
+            }
             _ => None,
         },
         _ => None,
     }
 }
-fn main() {
-    Cli::main()
+fn main() -> std::result::Result<(), color_eyre::Report> {
+    Cli::main()?;
+    Ok(())
 }
 
 #[derive(Clone, DumbEq)]
@@ -213,8 +273,7 @@ impl WalkProgressHandler for CargoTomlProgressHandler {
             }
         }
         if is_manifest {
-            self.pb
-                .set_message(format!("considering {filename}"));
+            self.pb.set_message(format!("considering {filename}"));
         } else {
             self.pb.set_style(spinner_style(Some(
                 "{spinner:.red} {msg:.242} {elapsed:.yellow}",
@@ -249,36 +308,34 @@ fn spinner(template: Option<&str>) -> ProgressBar {
     pb
 }
 fn spinner_style(template: Option<&str>) -> ProgressStyle {
-    ProgressStyle::with_template(
-        template.unwrap_or_else(|| "{spinner:.yellow} {msg:.cyan}"),
-    )
-    .unwrap()
-    .tick_strings(&[
-        "▐|\\____________▌",
-        "▐_|\\___________▌",
-        "▐__|\\__________▌",
-        "▐___|\\_________▌",
-        "▐____|\\________▌",
-        "▐_____|\\_______▌",
-        "▐______|\\______▌",
-        "▐_______|\\_____▌",
-        "▐________|\\____▌",
-        "▐_________|\\___▌",
-        "▐__________|\\__▌",
-        "▐___________|\\_▌",
-        "▐____________|\\▌",
-        "▐____________/|▌",
-        "▐___________/|_▌",
-        "▐__________/|__▌",
-        "▐_________/|___▌",
-        "▐________/|____▌",
-        "▐_______/|_____▌",
-        "▐______/|______▌",
-        "▐_____/|_______▌",
-        "▐____/|________▌",
-        "▐___/|_________▌",
-        "▐__/|__________▌",
-        "▐_/|___________▌",
-        "▐/|____________▌",
-    ])
+    ProgressStyle::with_template(template.unwrap_or_else(|| "{spinner:.yellow} {msg:.cyan}"))
+        .unwrap()
+        .tick_strings(&[
+            "▐|\\____________▌",
+            "▐_|\\___________▌",
+            "▐__|\\__________▌",
+            "▐___|\\_________▌",
+            "▐____|\\________▌",
+            "▐_____|\\_______▌",
+            "▐______|\\______▌",
+            "▐_______|\\_____▌",
+            "▐________|\\____▌",
+            "▐_________|\\___▌",
+            "▐__________|\\__▌",
+            "▐___________|\\_▌",
+            "▐____________|\\▌",
+            "▐____________/|▌",
+            "▐___________/|_▌",
+            "▐__________/|__▌",
+            "▐_________/|___▌",
+            "▐________/|____▌",
+            "▐_______/|_____▌",
+            "▐______/|______▌",
+            "▐_____/|_______▌",
+            "▐____/|________▌",
+            "▐___/|_________▌",
+            "▐__/|__________▌",
+            "▐_/|___________▌",
+            "▐/|____________▌",
+        ])
 }
