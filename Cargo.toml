@@ -1,5 +1,5 @@
 [package]
-name = "cargo-upgrade"
+name = "cargo-upgrade-deps"
 version = "0.1.0"
 description = "upgrades versions of a crate's dependencies"
 readme = "README.md"
