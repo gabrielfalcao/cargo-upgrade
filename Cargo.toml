@@ -1,13 +1,22 @@
 [package]
 name = "cargo-upgrade-deps"
-version = "0.1.0"
+version = "0.2.0"
 description = "upgrades versions of a crate's dependencies"
 readme = "README.md"
-homepage = "https://crates.io/crates/cargo-upgrade"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 edition = "2024"
 autoexamples = false
 autobenches = false
+
+homepage = "https://crates.io/crates/couleur-rs"
+documentation = "https://docs.rs/couleur-rs"
+repository = "https://github.com/gabrielfalcao/couleur-rs"
+
+keywords = ["cargo", "manifest", "upgrade", "dependencies"]
+authors = ["Gabriel DeMoura <gabrielteratos@gmail.com>"]
+categories = ["command-line-interface", "development-tools"]
+
+# categories = [] # https://crates.io/category_slugs
 
 [lib]
 name = "cargo_upgrade"
@@ -15,7 +24,7 @@ path = "src/lib.rs"
 bench = false
 
 [[bin]]
-name = "cargo-upgrade"
+name = "cargo-upgrade-deps"
 path = "src/main.rs"
 
 [dependencies]
