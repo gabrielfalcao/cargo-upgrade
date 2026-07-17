@@ -70,8 +70,8 @@ impl From<toml::ser::Error> for Error {
         Error::SerializationError(format!("{}", e))
     }
 }
-impl From<crates_io::Error> for Error {
-    fn from(e: crates_io::Error) -> Self {
+impl <T: std::fmt::Display>From<crates_io::Error<T>> for Error {
+    fn from(e: crates_io::Error<T>) -> Self {
         Error::CratesIOError(format!("{}", e))
     }
 }

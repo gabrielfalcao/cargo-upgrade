@@ -28,11 +28,11 @@ name = "cargo-upgrade-deps"
 path = "src/main.rs"
 
 [dependencies]
-cargo = "0.97.2"
+cargo = "0.98.0"
 chrono = { version = "0.4.45", features = ["serde"] }
-clap = { version = "4.6.1", features = ["derive", "env", "string", "unicode", "wrap_help"] }
+clap = { version = "4.6.2", features = ["derive", "env", "string", "unicode", "wrap_help"] }
 color-eyre = "0.6.5"
-crates-io = "0.40.19"
+crates-io = "0.41.0"
 curl = "0.4.50"
 dumbeq = "0.1.2"
 fern = "0.7.1"
@@ -41,12 +41,12 @@ indicatif = "0.18.6"
 iocore = "3.1.0"
 log = { version = "0.4.33", features = ["std", "kv", "serde"] }
 percent-encoding = "2.3.2"
-regex = "1.12.4"
+regex = "1.13.1"
 reqwest = { version = "0.13.4", features = ["blocking", "gzip", "hickory-dns", "json", "query"] }
 sanitation = "1.0.3"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
-slugify-filenames = "0.5.3"
+slugify-filenames = "0.6.0"
 thiserror = "2.0.18"
 toml = "0.9.8"
 toml_edit = { version = "0.23.9", features = ["serde"] }
