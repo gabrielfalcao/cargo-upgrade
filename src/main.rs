@@ -85,15 +85,15 @@ impl Cli {
     }
 
     pub fn upgrade(&self, doc: DocumentMut, path: &Path, pb: &ProgressBar) -> Result<()> {
-        pb.set_style(spinner_style(Some("{msg:.220}")));
+        pb.set_style(spinner_style(Some("{msg}\x1b[0m")));
         if self.dry_run {
             pb.set_message(format!(
-                "would modify {:#?}",
+                "\x1b[1;38;2;211;56;229mwould modify \x1b[1;38;2;255;159;206m{:#?}",
                 path.relative_to_cwd().to_string()
             ));
         } else {
             pb.set_message(format!(
-                "upgrading {:#?}",
+                "\x1b[1;38;2;141;204;48mupgrading \x1b[1;38;2;144;225;98m{:#?}",
                 path.relative_to_cwd().to_string()
             ));
             path.write(doc.to_string().as_bytes())?;
@@ -185,7 +185,7 @@ impl ParserDispatcher<Error> for Cli {
                     ) {
                         if old_version != newest_version.num {
                             println!(
-                                "{}: upgraded {} from {:#?} to {:#?} in {}",
+                                "\x1b[1;38;2;238;234;89m{}: \x1b[1;38;2;178;231;126mupgraded \x1b[1;38;2;85;217;77m{} \x1b[1;38;2;178;231;126mfrom \x1b[1;38;2;238;234;89m{:#?} \x1b[1;38;2;178;231;126mto \x1b[1;38;2;85;217;77m{:#?} \x1b[1;38;2;178;231;126min \x1b[1;38;2;119;162;246m{}",
                                 path.relative_to_cwd().to_string(),
                                 package.as_str(),
                                 old_version.to_string(),
@@ -274,9 +274,9 @@ impl WalkProgressHandler for CargoTomlProgressHandler {
             self.pb.set_message(format!("considering {filename}"));
         } else {
             self.pb.set_style(spinner_style(Some(
-                "{spinner:.red} {msg:.242} {elapsed:.yellow}",
+                "\x1b[1;38;2;144;225;98m{msg} \x1b[1;38;2;238;240;118m{spinner} \x1b[1;38;2;148;213;255m{elapsed}\x1b[0m",
             )));
-            self.pb.set_message(format!("working"));
+            self.pb.set_message(format!("fetching"));
         }
         Ok(())
     }
@@ -310,17 +310,30 @@ fn spinner_style(template: Option<&str>) -> ProgressStyle {
         .unwrap()
         .tick_strings(&[
             "▰▱▱▱▱▱▱",
+            "▰▱▱▱▱▱▱",
+            "▰▰▱▱▱▱▱",
             "▰▰▱▱▱▱▱",
             "▰▰▰▱▱▱▱",
+            "▰▰▰▱▱▱▱",
+            "▰▰▰▰▱▱▱",
             "▰▰▰▰▱▱▱",
             "▰▰▰▰▰▱▱",
+            "▰▰▰▰▰▱▱",
+            "▰▰▰▰▰▰▱",
             "▰▰▰▰▰▰▱",
             "▰▰▰▰▰▰▰",
+            "▰▰▰▰▰▰▰",
+            "▰▰▰▰▰▰▱",
             "▰▰▰▰▰▰▱",
             "▰▰▰▰▰▱▱",
+            "▰▰▰▰▰▱▱",
+            "▰▰▰▰▱▱▱",
             "▰▰▰▰▱▱▱",
             "▰▰▰▱▱▱▱",
+            "▰▰▰▱▱▱▱",
             "▰▰▱▱▱▱▱",
+            "▰▰▱▱▱▱▱",
+            "▰▱▱▱▱▱▱",
             "▰▱▱▱▱▱▱",
         ])
 }
