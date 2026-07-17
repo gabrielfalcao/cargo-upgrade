@@ -4,7 +4,7 @@ use cargo_upgrade::{
     APIClient, Error, Manifest, Result,
     api::models::{EncodableCrate, EncodableVersion},
     cli::ParserDispatcher,
-    matches_semver, setup_logger
+    matches_semver, setup_logger,
 };
 use clap::Parser;
 use dumbeq::DumbEq;
@@ -48,8 +48,6 @@ pub struct Cli {
 
     #[arg(short, long, help = "the log level")]
     pub log_level: Option<log::LevelFilter>,
-
-
 }
 impl Cli {
     pub fn packages(&self, manifest_path: &Path) -> Vec<String> {
@@ -160,7 +158,7 @@ impl Cli {
 
 impl ParserDispatcher<Error> for Cli {
     fn dispatch(&self) -> Result<()> {
-        setup_logger(self.log_level.unwrap_or_else(||log::LevelFilter::Info));
+        setup_logger(self.log_level.unwrap_or_else(|| log::LevelFilter::Info));
         color_eyre::install()?;
 
         let pb = spinner(None);
@@ -311,31 +309,18 @@ fn spinner_style(template: Option<&str>) -> ProgressStyle {
     ProgressStyle::with_template(template.unwrap_or_else(|| "{spinner:.yellow} {msg:.cyan}"))
         .unwrap()
         .tick_strings(&[
-            "▐|\\____________▌",
-            "▐_|\\___________▌",
-            "▐__|\\__________▌",
-            "▐___|\\_________▌",
-            "▐____|\\________▌",
-            "▐_____|\\_______▌",
-            "▐______|\\______▌",
-            "▐_______|\\_____▌",
-            "▐________|\\____▌",
-            "▐_________|\\___▌",
-            "▐__________|\\__▌",
-            "▐___________|\\_▌",
-            "▐____________|\\▌",
-            "▐____________/|▌",
-            "▐___________/|_▌",
-            "▐__________/|__▌",
-            "▐_________/|___▌",
-            "▐________/|____▌",
-            "▐_______/|_____▌",
-            "▐______/|______▌",
-            "▐_____/|_______▌",
-            "▐____/|________▌",
-            "▐___/|_________▌",
-            "▐__/|__________▌",
-            "▐_/|___________▌",
-            "▐/|____________▌",
+            "▰▱▱▱▱▱▱",
+            "▰▰▱▱▱▱▱",
+            "▰▰▰▱▱▱▱",
+            "▰▰▰▰▱▱▱",
+            "▰▰▰▰▰▱▱",
+            "▰▰▰▰▰▰▱",
+            "▰▰▰▰▰▰▰",
+            "▰▰▰▰▰▰▱",
+            "▰▰▰▰▰▱▱",
+            "▰▰▰▰▱▱▱",
+            "▰▰▰▱▱▱▱",
+            "▰▰▱▱▱▱▱",
+            "▰▱▱▱▱▱▱",
         ])
 }
