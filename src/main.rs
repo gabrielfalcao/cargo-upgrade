@@ -274,7 +274,7 @@ impl WalkProgressHandler for CargoTomlProgressHandler {
             self.pb.set_message(format!("considering {filename}"));
         } else {
             self.pb.set_style(spinner_style(Some(
-                "\x1b[1;38;2;144;225;98m{msg} \x1b[1;38;2;238;240;118m{spinner} \x1b[1;38;2;148;213;255m{elapsed}\x1b[0m",
+                "\x1b[1;38;2;144;225;98m{msg} \x1b[1;38;2;234;105;48m{spinner} \x1b[1;38;2;238;234;89m{elapsed}\x1b[0m",
             )));
             self.pb.set_message(format!("fetching"));
         }
@@ -306,34 +306,22 @@ fn spinner(template: Option<&str>) -> ProgressBar {
     pb
 }
 fn spinner_style(template: Option<&str>) -> ProgressStyle {
-    ProgressStyle::with_template(template.unwrap_or_else(|| "{spinner:.yellow} {msg:.cyan}"))
+    ProgressStyle::with_template(template.unwrap_or_else(|| "\x1b[1;38;2;234;105;48m{spinner}\x1b[0m {msg:.cyan}"))
         .unwrap()
         .tick_strings(&[
             "▰▱▱▱▱▱▱",
-            "▰▱▱▱▱▱▱",
-            "▰▰▱▱▱▱▱",
             "▰▰▱▱▱▱▱",
             "▰▰▰▱▱▱▱",
-            "▰▰▰▱▱▱▱",
-            "▰▰▰▰▱▱▱",
             "▰▰▰▰▱▱▱",
             "▰▰▰▰▰▱▱",
-            "▰▰▰▰▰▱▱",
-            "▰▰▰▰▰▰▱",
             "▰▰▰▰▰▰▱",
             "▰▰▰▰▰▰▰",
-            "▰▰▰▰▰▰▰",
-            "▰▰▰▰▰▰▱",
-            "▰▰▰▰▰▰▱",
-            "▰▰▰▰▰▱▱",
-            "▰▰▰▰▰▱▱",
-            "▰▰▰▰▱▱▱",
-            "▰▰▰▰▱▱▱",
-            "▰▰▰▱▱▱▱",
-            "▰▰▰▱▱▱▱",
-            "▰▰▱▱▱▱▱",
-            "▰▰▱▱▱▱▱",
-            "▰▱▱▱▱▱▱",
-            "▰▱▱▱▱▱▱",
+            "▱▰▰▰▰▰▰",
+            "▱▱▰▰▰▰▰",
+            "▱▱▱▰▰▰▰",
+            "▱▱▱▱▰▰▰",
+            "▱▱▱▱▱▰▰",
+            "▱▱▱▱▱▱▰▰",
+            "▱▱▱▱▱▱▱▰",
         ])
 }
